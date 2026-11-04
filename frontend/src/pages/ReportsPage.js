@@ -518,9 +518,8 @@ export default function ReportsPage() {
                           <div className={`font-black text-sm ${isPositive ? 'text-emerald-700' : 'text-red-600'}`}>
                             {isPositive ? '+' : ''}₹{trip.net_profit.toLocaleString()}
                           </div>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                            isPositive ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                          }`}>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isPositive ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                            }`}>
                             {trip.profit_margin_pct}% Margin
                           </span>
                         </td>
@@ -581,7 +580,7 @@ export default function ReportsPage() {
                 </thead>
                 <tbody>
                   {data.operationalCosts.map(item => {
-                    const ratio = parseFloat(item.acquisition_cost) > 0 
+                    const ratio = parseFloat(item.acquisition_cost) > 0
                       ? ((parseFloat(item.total_operational_cost) / parseFloat(item.acquisition_cost)) * 100).toFixed(1)
                       : 0;
                     return (
@@ -604,11 +603,10 @@ export default function ReportsPage() {
                           </span>
                         </td>
                         <td className="py-3.5">
-                          <span className={`text-xs font-extrabold px-2.5 py-1 rounded-lg uppercase tracking-wide border ${
-                            parseFloat(ratio) > 50 
+                          <span className={`text-xs font-extrabold px-2.5 py-1 rounded-lg uppercase tracking-wide border ${parseFloat(ratio) > 50
                               ? 'bg-red-50 text-red-700 border-red-200'
                               : 'bg-green-50 text-green-700 border-green-200'
-                          }`}>
+                            }`}>
                             {ratio}% Cost-to-Asset Ratio
                           </span>
                         </td>
