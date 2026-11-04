@@ -29,8 +29,14 @@ const authController = {
 
         roleRecord = await Role.findOne({ where: { name: carrierRole }, transaction: t });
         if (!roleRecord) {
-          await t.rollback();
-          return res.status(400).json({ success: false, message: 'Role not found' });
+          [roleRecord] = await Role.findOrCreate({
+            where: { name: carrierRole },
+            defaults: {
+              name: carrierRole,
+              description: `${carrierRole.replace('_', ' ')} role`
+            },
+            transaction: t
+          });
         }
 
         // Create or attach the carrier company
@@ -77,11 +83,14 @@ const authController = {
 
       } else if (accountType === 'shipper') {
         // ── SHIPPER PATH ──
-        roleRecord = await Role.findOne({ where: { name: 'shipper' }, transaction: t });
-        if (!roleRecord) {
-          await t.rollback();
-          return res.status(400).json({ success: false, message: 'Shipper role not configured in database' });
-        }
+        [roleRecord] = await Role.findOrCreate({
+          where: { name: 'shipper' },
+          defaults: {
+            name: 'shipper',
+            description: 'Books freight shipments and tracks cargo deliveries'
+          },
+          transaction: t
+        });
 
         if (!shipperType || !['individual', 'company'].includes(shipperType)) {
           await t.rollback();
@@ -93,8 +102,14 @@ const authController = {
         const legacyRole = role || 'fleet_manager';
         roleRecord = await Role.findOne({ where: { name: legacyRole }, transaction: t });
         if (!roleRecord) {
-          await t.rollback();
-          return res.status(400).json({ success: false, message: 'Invalid role specified' });
+          [roleRecord] = await Role.findOrCreate({
+            where: { name: legacyRole },
+            defaults: {
+              name: legacyRole,
+              description: `${legacyRole.replace('_', ' ')} role`
+            },
+            transaction: t
+          });
         }
       }
 
