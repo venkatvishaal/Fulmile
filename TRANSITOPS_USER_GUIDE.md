@@ -1,4 +1,4 @@
-# TransitOps — Full User Manual
+# Fulmile — Full User Manual
 
 > **Version 1.0** · Smart Fleet Operations Management Platform  
 > **Platform Stack:** React.js · Node.js / Express · PostgreSQL · Socket.io
@@ -76,9 +76,9 @@
 
 ## 1. Introduction & System Overview
 
-**TransitOps** is a centralized, real-time fleet operations management platform built for logistics companies. It solves four critical operational challenges simultaneously:
+**Fulmile** is a centralized, real-time fleet operations management platform built for logistics companies. It solves four critical operational challenges simultaneously:
 
-| Challenge | TransitOps Solution |
+| Challenge | Fulmile Solution |
 |-----------|---------------------|
 | 🗺 "Where is my cargo?" | Live GPS streaming via Socket.io + interactive Leaflet maps |
 | 🚛 Empty miles / underused trucks | Shared Capacity Marketplace — publish spare truck space for co-loading |
@@ -105,7 +105,7 @@
 
 ### 2.1 Prerequisites
 
-Before setting up TransitOps, ensure the following are installed on your machine:
+Before setting up Fulmile, ensure the following are installed on your machine:
 
 | Software | Minimum Version | Purpose |
 |----------|----------------|---------|
@@ -119,23 +119,23 @@ Before setting up TransitOps, ensure the following are installed on your machine
 
 ```sql
 -- Run as a PostgreSQL superuser (e.g., postgres)
-CREATE DATABASE transitops;
+CREATE DATABASE fulmile;
 -- The default setup uses the postgres user directly.
 -- Optionally create a dedicated user:
--- CREATE USER transitops_user WITH PASSWORD 'your_password';
--- GRANT ALL PRIVILEGES ON DATABASE transitops TO transitops_user;
+-- CREATE USER fulmile_user WITH PASSWORD 'your_password';
+-- GRANT ALL PRIVILEGES ON DATABASE fulmile TO fulmile_user;
 ```
 
 2. **Run the schema migration:**
 
 ```powershell
-psql -U postgres -d transitops -f database\schema.sql
+psql -U postgres -d fulmile -f database\schema.sql
 ```
 
 3. **Load seed data** (optional — recommended for development/demo):
 
 ```powershell
-psql -U postgres -d transitops -f database\seed.sql
+psql -U postgres -d fulmile -f database\seed.sql
 ```
 
 The seed data creates:
@@ -155,7 +155,7 @@ Create or verify your `.env` file in the `backend/` directory:
 ```env
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=transitops
+DB_NAME=fulmile
 DB_USER=postgres
 DB_PASSWORD=your_db_password
 JWT_SECRET=your_jwt_secret_key_change_in_production
@@ -174,7 +174,7 @@ npm run dev
 ```
 
 > The API server starts on **port 5000** by default (`http://localhost:5000`).  
-> You should see: `TransitOps server running on port 5000 in development mode`  
+> You should see: `Fulmile server running on port 5000 in development mode`  
 > Followed by: `Database connection has been established successfully.`
 
 ### 2.4 Frontend Setup
@@ -193,7 +193,7 @@ npm start
 |----------|---------|-------------|
 | `DB_HOST` | `localhost` | PostgreSQL server hostname |
 | `DB_PORT` | `5432` | PostgreSQL server port |
-| `DB_NAME` | `transitops` | Database name |
+| `DB_NAME` | `fulmile` | Database name |
 | `DB_USER` | `postgres` | Database username |
 | `DB_PASSWORD` | _(set this)_ | Database password |
 | `JWT_SECRET` | _(must change in prod)_ | Secret key for signing JWT auth tokens |
@@ -265,7 +265,7 @@ No GPS coordinates are written to the database during live streaming — they ar
 
 ## 4. User Roles & Access Control
 
-TransitOps uses **role-based access control (RBAC)**. Your role is assigned during registration and cannot be changed without administrator access to the database.
+Fulmile uses **role-based access control (RBAC)**. Your role is assigned during registration and cannot be changed without administrator access to the database.
 
 | Role | Internal Value | Access Level |
 |------|---------------|--------------|
@@ -341,12 +341,12 @@ Click **Logout** in the top-right corner of the navigation bar. This:
 The dark navigation bar is permanently visible at the top of every page once you are logged in.
 
 ```
-[ 🚛 TransitOps ] [ Dashboard ] [ Vehicles ] [ Drivers ] [ Maintenance ] [ Reports ] [ Track Cargo ] [ Find Shared Cargo ]  |  [ Role ]  [ Name ]  [ Logout ]
+[ 🚛 Fulmile ] [ Dashboard ] [ Vehicles ] [ Drivers ] [ Maintenance ] [ Reports ] [ Track Cargo ] [ Find Shared Cargo ]  |  [ Role ]  [ Name ]  [ Logout ]
 ```
 
 | Link | Visible To | Destination |
 |------|-----------|-------------|
-| **🚛 TransitOps** (logo) | Everyone | `/dashboard` |
+| **🚛 Fulmile** (logo) | Everyone | `/dashboard` |
 | **Dashboard** | Everyone | `/dashboard` |
 | **Vehicles** | Fleet Manager | `/vehicles` |
 | **Drivers** | Fleet Manager, Safety Officer | `/drivers` |
@@ -941,7 +941,7 @@ A new trip record is created and linked to the shared route. The fleet manager s
 
 **Route:** `/track` or `/track/:tripId` · **Access:** Anyone (no login required)
 
-This is the **customer-facing tracking portal**. Share the tracking URL with clients so they can follow their cargo in real time without needing a TransitOps account.
+This is the **customer-facing tracking portal**. Share the tracking URL with clients so they can follow their cargo in real time without needing a Fulmile account.
 
 ### 15.1 Accessing the Tracker
 
@@ -996,7 +996,7 @@ When the driver stops the live stream, the Live badge disappears and the last kn
 
 ## 16. Business Rules & Automated Gating
 
-TransitOps enforces the following business rules automatically — no manual checking is required.
+Fulmile enforces the following business rules automatically — no manual checking is required.
 
 | Rule | What It Prevents | Where It's Enforced |
 |------|-----------------|---------------------|
@@ -1228,7 +1228,7 @@ Weekly:
 | Problem | Cause | Solution |
 |---------|-------|----------|
 | `ECONNREFUSED` on backend startup | PostgreSQL is not running | Start PostgreSQL service: `net start postgresql-x64-14` (Windows) |
-| `database "transitops" does not exist` | Schema not created | Run: `psql -U postgres -c "CREATE DATABASE transitops;"` then run `schema.sql` |
+| `database "fulmile" does not exist` | Schema not created | Run: `psql -U postgres -c "CREATE DATABASE fulmile;"` then run `schema.sql` |
 | `relation "roles" does not exist` | Seed data run before schema | Run `schema.sql` first, then `seed.sql` |
 | Frontend shows blank page | Backend API not running | Start the backend server first (`npm start` in `/backend`) |
 | CORS error in browser console | `FRONTEND_URL` mismatch | Ensure `.env` `FRONTEND_URL` matches your React dev server URL |
@@ -1280,11 +1280,11 @@ Weekly:
 - **Toast notifications** appear in the top-right corner for every action (green = success, red = error, amber = warning). Always read them to confirm your action was processed.
 - **All dropdowns are pre-filtered** — only eligible options are shown. If something is missing from a dropdown, check its current status.
 - **Real-time updates** — Dashboard KPI cards and status badges update automatically via WebSocket. No need to manually refresh the page.
-- **The `/track` route is fully public** — share it freely with clients. They do not need a TransitOps account.
+- **The `/track` route is fully public** — share it freely with clients. They do not need a Fulmile account.
 
 ---
 
-> **TransitOps v1.0** — Smart Fleet Operations Management Platform  
+> **Fulmile v1.0** — Smart Fleet Operations Management Platform  
 > Enterprise Logistics · Tech Stack: React.js · Node.js/Express · PostgreSQL · Socket.io  
 > For technical issues, refer to [README.md](./README.md) or contact your system administrator.
 

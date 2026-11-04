@@ -26,7 +26,7 @@ api.interceptors.response.use(
     // No response at all (server down, offline, CORS): give every page's
     // `err.response?.data?.message` fallback a message people can act on.
     if (!error.response) {
-      error.response = { data: { message: "Can't reach the TransitOps server. Check your connection and try again." } };
+      error.response = { data: { message: "Can't reach the Fulmile server. Check your connection and try again." } };
       return Promise.reject(error);
     }
     // A failed sign-in is also a 401; let the login form show its error instead of reloading the page.

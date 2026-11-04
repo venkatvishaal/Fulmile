@@ -1,7 +1,7 @@
 # Nightly encrypted Postgres dump, kept as a workflow artifact for 30 days.
 # Needs repo secrets DATABASE_URL (Neon direct connection string) and BACKUP_PASSPHRASE.
 # Restore: download the artifact, then
-#   gpg --batch --passphrase "$BACKUP_PASSPHRASE" -d transitops.sql.gz.gpg | gunzip | psql "$TARGET_DATABASE_URL"
+#   gpg --batch --passphrase "$BACKUP_PASSPHRASE" -d fulmile.sql.gz.gpg | gunzip | psql "$TARGET_DATABASE_URL"
 name: Database backup
 
 on:
@@ -28,12 +28,12 @@ jobs:
           set -o pipefail
           /usr/lib/postgresql/16/bin/pg_dump --no-owner --no-privileges "$DATABASE_URL" \
             | gzip -9 \
-            | gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" -o transitops.sql.gz.gpg
-          ls -lh transitops.sql.gz.gpg
+            | gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" -o fulmile.sql.gz.gpg
+          ls -lh fulmile.sql.gz.gpg
 
       # Encrypted because artifacts of a public repository can be downloaded by anyone.
       - uses: actions/upload-artifact@v4
         with:
-          name: transitops-db-${{ github.run_id }}
-          path: transitops.sql.gz.gpg
+          name: fulmile-db-${{ github.run_id }}
+          path: fulmile.sql.gz.gpg
           retention-days: 30

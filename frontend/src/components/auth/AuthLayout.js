@@ -38,7 +38,7 @@ export default function AuthLayout({ checkpoint, title, lead, scene, readout, fo
     <div className="grain flex min-h-screen flex-col bg-paper lg:grid lg:grid-cols-12">
       <div className="flex flex-col px-5 pb-8 pt-5 sm:px-10 lg:order-2 lg:col-span-5 lg:min-h-screen lg:px-14 xl:px-20">
         <header className="flex items-center justify-between">
-          <Link to="/" aria-label="TransitOps home"><Logo /></Link>
+          <Link to="/" aria-label="Fulmile home"><Logo /></Link>
           <Link to="/track" className="hud text-ink/60 transition-colors hover:text-ink">Track cargo</Link>
         </header>
 

@@ -153,7 +153,7 @@ export default function ShipperTracking() {
       maxZoom: 19,
     }).addTo(map);
 
-    map.attributionControl.setPrefix('TransitOps Live Tracker');
+    map.attributionControl.setPrefix('Fulmile Live Tracker');
     mapRef.current = map;
 
     // Invalidate size to guarantee tiles render without grey gaps

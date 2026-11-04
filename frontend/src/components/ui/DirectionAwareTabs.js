@@ -1,6 +1,6 @@
 // Ported from Cult UI "direction-aware-tabs" (cult-ui.com/r/direction-aware-tabs.json).
 // Changes: tablist/tab ARIA + arrow keys, per-instance layoutId, reduced motion, controlled `value`,
-// ResizeObserver hook instead of react-use-measure, restyled to the TransitOps tokens.
+// ResizeObserver hook instead of react-use-measure, restyled to the Fulmile tokens.
 import React, { useId, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, MotionConfig, useReducedMotion } from 'motion/react';
 

@@ -4,7 +4,7 @@ require('dotenv').config();
 
 // Every query inside a request joins that request's transaction (see middleware/auth.js),
 // which is what carries the row-level-security context.
-const namespace = cls.createNamespace('transitops-request');
+const namespace = cls.createNamespace('fulmile-request');
 Sequelize.useCLS(namespace);
 
 let sequelize;
@@ -27,7 +27,7 @@ if (process.env.DATABASE_URL) {
   sequelize = new Sequelize({
     host:     process.env.DB_HOST     || 'localhost',
     port:     parseInt(process.env.DB_PORT) || 5432,
-    database: process.env.DB_NAME     || 'transitops',
+    database: process.env.DB_NAME     || 'fulmile',
     username: process.env.DB_USER     || 'postgres',
     password: process.env.DB_PASSWORD || '',
     dialect:  'postgres',

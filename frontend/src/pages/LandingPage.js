@@ -28,7 +28,7 @@ function useMedia(query) {
   return matches;
 }
 
-const REPO_URL = 'https://github.com/venkatvishaal/TransitOps';
+const REPO_URL = 'https://github.com/venkatvishaal/Fulmile';
 const WRAP = 'mx-auto w-full max-w-wide px-5 sm:px-8 lg:px-12';
 const TILE = 'relative h-full overflow-hidden rounded-[10px]';
 const LEAD = 'text-[17px] leading-[1.55]';
@@ -105,7 +105,7 @@ function LandingNav() {
             : 'max-w-[1336px] border-transparent bg-transparent'
         }`}
       >
-        <Link to="/" aria-label="TransitOps home" className="shrink-0"><Logo /></Link>
+        <Link to="/" aria-label="Fulmile home" className="shrink-0"><Logo /></Link>
         <nav aria-label="Sections" className="hidden items-center text-[13px] font-medium md:flex">
           {ANCHORS.map((a) => (
             <a key={a.href} href={a.href} className="rounded-full px-3.5 py-2 text-ink/60 transition-colors hover:bg-ink/5 hover:text-ink">{a.label}</a>
@@ -306,7 +306,7 @@ function Ledger() {
           index="01"
           label="Problem → solution"
           title="Four structural failures. Four automated rules."
-          aside="Instead of trusting people to remember manual policy, TransitOps builds operational compliance and financial reconciliation directly into the dispatch engine."
+          aside="Instead of trusting people to remember manual policy, Fulmile builds operational compliance and financial reconciliation directly into the dispatch engine."
         />
         <div className="mt-[clamp(56px,7vw,112px)] border-b border-ink/15">
           {LEDGER.map(([problem, rule], i) => (
@@ -807,7 +807,7 @@ function Footer() {
         ))}
       </div>
       <p aria-hidden="true" className="display-xl pointer-events-none -mb-[0.16em] select-none whitespace-nowrap px-3 text-center text-[19.5vw] text-paper/[0.06]">
-        TransitOps
+        Fulmile
       </p>
     </footer>
   );

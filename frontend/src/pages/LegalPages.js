@@ -2,8 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 // Template text. Have someone qualified review it and fill in your details before real users sign up.
-const COMPANY = 'TransitOps';
-const CONTACT_EMAIL = 'privacy@transitops.example';
+const COMPANY = 'Fulmile';
+const CONTACT_EMAIL = 'privacy@fulmile.example';
 const UPDATED = '21 October 2026';
 
 function LegalLayout({ title, children }) {

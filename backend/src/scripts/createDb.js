@@ -7,15 +7,15 @@ const createDb = async () => {
 
   try {
     await client.connect();
-    console.log('Connected to postgres database. Checking database transitops...');
+    console.log('Connected to postgres database. Checking database fulmile...');
     
-    const res = await client.query("SELECT 1 FROM pg_database WHERE datname = 'transitops'");
+    const res = await client.query("SELECT 1 FROM pg_database WHERE datname = 'fulmile'");
     if (res.rowCount === 0) {
-      console.log('Database transitops does not exist. Creating...');
-      await client.query('CREATE DATABASE transitops');
-      console.log('Database transitops created successfully.');
+      console.log('Database fulmile does not exist. Creating...');
+      await client.query('CREATE DATABASE fulmile');
+      console.log('Database fulmile created successfully.');
     } else {
-      console.log('Database transitops already exists.');
+      console.log('Database fulmile already exists.');
     }
   } catch (err) {
     console.error('Error creating database:', err);

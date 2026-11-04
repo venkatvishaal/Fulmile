@@ -40,7 +40,7 @@ async function run() {
 
   section('Demo accounts');
   const tokens = {};
-  for (const [role, email] of [['manager', 'manager@transitops.com'], ['driver', 'alex@transitops.com'], ['safety', 'safety@transitops.com'], ['analyst', 'analyst@transitops.com']]) {
+  for (const [role, email] of [['manager', 'manager@fulmile.com'], ['driver', 'alex@fulmile.com'], ['safety', 'safety@fulmile.com'], ['analyst', 'analyst@fulmile.com']]) {
     tokens[role] = await login(email, 'password123');
     check(`${role} can sign in`, !!tokens[role]);
   }

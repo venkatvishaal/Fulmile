@@ -83,7 +83,7 @@ export default function FuelExpensePage() {
 
   const runExport = async (format) => {
     const { fuel, exp, fuelLitres, fuelCost, expCost } = financeRows(fuelLogs, expenses);
-    const name = `transitops_fuel_expenses_${fileDate()}`;
+    const name = `fulmile_fuel_expenses_${fileDate()}`;
     try {
       if (format === 'xlsx') {
         await exportExcel({

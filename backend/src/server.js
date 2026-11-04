@@ -97,7 +97,7 @@ io.on('connection', (socket) => {
 });
 
 // Routes
-app.get('/', (req, res) => res.json({ name: 'TransitOps API', status: 'online', health: '/api/health' }));
+app.get('/', (req, res) => res.json({ name: 'Fulmile API', status: 'online', health: '/api/health' }));
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.use('/api/auth', authRoutes);
@@ -160,15 +160,15 @@ const startServer = async () => {
       console.warn('Schema auto-migration notice:', migErr?.message || migErr);
     }
 
-    const [[{ ready }]] = await sequelize.query("SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'transitops_app') AS ready");
+    const [[{ ready }]] = await sequelize.query("SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'fulmile_app') AS ready");
     enableRls(ready);
     if (!ready) console.warn('Row-level security is OFF: run `npm run db:migrate-auth` to enable it.');
     
     server.listen(PORT, () => {
-      console.log(`TransitOps server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+      console.log(`Fulmile server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
     });
   } catch (error) {
-    console.error('Unable to start TransitOps server:', error);
+    console.error('Unable to start Fulmile server:', error);
     process.exit(1);
   }
 };

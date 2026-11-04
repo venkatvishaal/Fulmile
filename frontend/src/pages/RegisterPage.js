@@ -208,7 +208,7 @@ export default function RegisterPage() {
         ? (carrierMode === 'existing' ? currentSelectedCarrier?.company_name : carrierForm.company_name)
         : '';
 
-      toast.success(`Welcome to TransitOps, ${res.data.data.name}! ${compName ? `(${compName})` : ''}`);
+      toast.success(`Welcome to Fulmile, ${res.data.data.name}! ${compName ? `(${compName})` : ''}`);
 
       if (accountType === 'shipper') {
         navigate('/book-freight');

@@ -1,4 +1,4 @@
-// Shared clay-model pieces for every TransitOps WebGL scene (landing yard, auth checkpoint/stack).
+// Shared clay-model pieces for every Fulmile WebGL scene (landing yard, auth checkpoint/stack).
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';

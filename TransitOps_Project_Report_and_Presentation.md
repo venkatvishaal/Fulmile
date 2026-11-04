@@ -1,4 +1,4 @@
-# TransitOps — Smart Transport Operations & Freight Corridor Platform
+# Fulmile — Smart Transport Operations & Freight Corridor Platform
 
 ---
 
@@ -6,19 +6,19 @@
 
 ## 1. Executive Summary
 
-**TransitOps** is an enterprise-grade Transport Operations and Freight Logistics Platform engineered for modern road transport networks. TransitOps transforms traditional fleet management into an integrated, real-time dispatch, corridor load consolidation, and automated financial settlement ecosystem.
+**Fulmile** is an enterprise-grade Transport Operations and Freight Logistics Platform engineered for modern road transport networks. Fulmile transforms traditional fleet management into an integrated, real-time dispatch, corridor load consolidation, and automated financial settlement ecosystem.
 
 The platform directly addresses two chronic failures in road freight logistics:
 1. **The "Empty Miles & Underutilized Payload" Crisis:** Freight vehicles routinely transit corridors with 30% to 50% unused weight capacity, resulting in wasted fuel, unmonetized carrier runs, and inflated transport overhead.
 2. **Disjointed Operations & Financial Blindspots:** Shippers lack live freight visibility, while carriers struggle with delayed freight reconciliations, unverified driver compliance, and fragmented operational cost accounting.
 
-TransitOps introduces an end-to-end multi-tenant platform connecting **Freight Shippers** and **Logistics Carriers**. Featuring an automated **Shared Cargo Marketplace**, **Real-Time GPS Corridor Streaming**, **Strict Operational Compliance Gating**, and **Automated 100% Margin Financial Settlement**, TransitOps turns every dispatched vehicle into a profitable, high-utilization freight asset.
+Fulmile introduces an end-to-end multi-tenant platform connecting **Freight Shippers** and **Logistics Carriers**. Featuring an automated **Shared Cargo Marketplace**, **Real-Time GPS Corridor Streaming**, **Strict Operational Compliance Gating**, and **Automated 100% Margin Financial Settlement**, Fulmile turns every dispatched vehicle into a profitable, high-utilization freight asset.
 
 ---
 
 ## 2. Industry Problem Statement & Objectives
 
-| Challenge Area | Industry Reality | TransitOps Solution |
+| Challenge Area | Industry Reality | Fulmile Solution |
 | :--- | :--- | :--- |
 | **Cargo Visibility** | Shippers rely on manual phone calls to check shipment whereabouts, leading to blind spots and anxiety. | **Zero-Login Public GPS Tracking**: Live WebSocket GPS streaming with OpenStreetMap interactive route trails and geocoded checkpoints. |
 | **Fleet Capacity Waste** | Dispatched vehicles run partially loaded along high-volume corridors (e.g., Chennai $\rightarrow$ Delhi). | **Shared Capacity Marketplace**: Automated corridor space publishing, enabling shippers to book remaining payload at optimized freight rates. |
@@ -33,7 +33,7 @@ TransitOps introduces an end-to-end multi-tenant platform connecting **Freight S
 
 ### 3.1 Three-Tier Architectural Overview
 
-TransitOps is architected as a cloud-native, decoupled 3-tier system built for high throughput, sub-second telemetry delivery, and strict multi-tenant isolation.
+Fulmile is architected as a cloud-native, decoupled 3-tier system built for high throughput, sub-second telemetry delivery, and strict multi-tenant isolation.
 
 ```
 +==================================================================================================+
@@ -109,7 +109,7 @@ The diagram below details the continuous GPS location relay loop that powers zer
 
 ```
 +----------------+              +-------------------------+              +-----------------------+
-|  Driver App    |              |  TransitOps API Gateway  |              |  Public Cargo Tracker |
+|  Driver App    |              |  Fulmile API Gateway  |              |  Public Cargo Tracker |
 | (Mobile Client)|              |    (Socket.io Server)   |              |   (Browser / Leaflet) |
 +----------------+              +-------------------------+              +-----------------------+
        |                                     |                                       |
@@ -142,7 +142,7 @@ The diagram below details the continuous GPS location relay loop that powers zer
 
 ### 3.3 Multi-Tenant Carrier Hierarchy & Role-Based Access Control (RBAC)
 
-TransitOps enforces role-based access control across all operations. The system isolates data by `carrier_id` and grants fine-grained permissions:
+Fulmile enforces role-based access control across all operations. The system isolates data by `carrier_id` and grants fine-grained permissions:
 
 | System Role | Portal Navigation & Capabilities | Core Operational Permissions |
 | :--- | :--- | :--- |
@@ -352,7 +352,7 @@ During live production validation on **fulmile.vercel.app**, a cross-country fre
 # PART 2: Project Presentation Slide Deck
 
 ### Slide 1: Title & Platform Overview
-- **Title**: TransitOps — Smart Transport Operations & Freight Corridor Platform
+- **Title**: Fulmile — Smart Transport Operations & Freight Corridor Platform
 - **Subtitle**: Enterprise Fleet Management, Shared Capacity Marketplace & Real-Time Logistics
 - **Platform Stack**: React.js 18 · Node.js / Express 5 · PostgreSQL · Socket.io · Leaflet OpenStreetMap
 - **Live Deployment**: `fulmile.vercel.app`
@@ -363,7 +363,7 @@ During live production validation on **fulmile.vercel.app**, a cross-country fre
 - **Compliance Overhead**: Expired licenses and pending vehicle fitness certificates trigger roadside regulatory detentions.
 - **Delayed Settlements**: Disjointed expense tracking delays carrier profitability calculations by weeks.
 
-### Slide 3: The TransitOps Platform Solution
+### Slide 3: The Fulmile Platform Solution
 - **Shared Cargo Marketplace**: Instantly surfaces open weight capacity on vehicles already scheduled along active freight corridors.
 - **Single Dispatch Consolidation**: Merges shared cargo shipments directly into active dispatches with zero route duplication.
 - **100% Margin Economics**: Incremental shared freight yields pure operating profit with zero extra fuel expense.
@@ -408,7 +408,7 @@ During live production validation on **fulmile.vercel.app**, a cross-country fre
 - **Asset Monetization**: Turns empty freight capacity into pure bottom-line carrier profit.
 - **Operational Automation**: Unifies shippers, dispatchers, drivers, and safety officers in a single real-time platform.
 - **Cloud-Native & Production-Ready**: Live, verified, and continuously accessible at `fulmile.vercel.app`.
-# TransitOps — Smart Transport Operations & Freight Corridor Platform
+# Fulmile — Smart Transport Operations & Freight Corridor Platform
 
 ---
 
@@ -416,19 +416,19 @@ During live production validation on **fulmile.vercel.app**, a cross-country fre
 
 ## 1. Executive Summary
 
-**TransitOps** is an enterprise-grade Transport Operations and Freight Logistics Platform engineered for modern road transport networks. TransitOps transforms traditional fleet management into an integrated, real-time dispatch, corridor load consolidation, and automated financial settlement ecosystem.
+**Fulmile** is an enterprise-grade Transport Operations and Freight Logistics Platform engineered for modern road transport networks. Fulmile transforms traditional fleet management into an integrated, real-time dispatch, corridor load consolidation, and automated financial settlement ecosystem.
 
 The platform directly addresses two chronic failures in road freight logistics:
 1. **The "Empty Miles & Underutilized Payload" Crisis:** Freight vehicles routinely transit corridors with 30% to 50% unused weight capacity, resulting in wasted fuel, unmonetized carrier runs, and inflated transport overhead.
 2. **Disjointed Operations & Financial Blindspots:** Shippers lack live freight visibility, while carriers struggle with delayed freight reconciliations, unverified driver compliance, and fragmented operational cost accounting.
 
-TransitOps introduces an end-to-end multi-tenant platform connecting **Freight Shippers** and **Logistics Carriers**. Featuring an automated **Shared Cargo Marketplace**, **Real-Time GPS Corridor Streaming**, **Strict Operational Compliance Gating**, and **Automated 100% Margin Financial Settlement**, TransitOps turns every dispatched vehicle into a profitable, high-utilization freight asset.
+Fulmile introduces an end-to-end multi-tenant platform connecting **Freight Shippers** and **Logistics Carriers**. Featuring an automated **Shared Cargo Marketplace**, **Real-Time GPS Corridor Streaming**, **Strict Operational Compliance Gating**, and **Automated 100% Margin Financial Settlement**, Fulmile turns every dispatched vehicle into a profitable, high-utilization freight asset.
 
 ---
 
 ## 2. Industry Problem Statement & Objectives
 
-| Challenge Area | Industry Reality | TransitOps Solution |
+| Challenge Area | Industry Reality | Fulmile Solution |
 | :--- | :--- | :--- |
 | **Cargo Visibility** | Shippers rely on manual phone calls to check shipment whereabouts, leading to blind spots and anxiety. | **Zero-Login Public GPS Tracking**: Live WebSocket GPS streaming with OpenStreetMap interactive route trails and geocoded checkpoints. |
 | **Fleet Capacity Waste** | Dispatched vehicles run partially loaded along high-volume corridors (e.g., Chennai $\rightarrow$ Delhi). | **Shared Capacity Marketplace**: Automated corridor space publishing, enabling shippers to book remaining payload at optimized freight rates. |
@@ -443,7 +443,7 @@ TransitOps introduces an end-to-end multi-tenant platform connecting **Freight S
 
 ### 3.1 Three-Tier Architectural Overview
 
-TransitOps is architected as a cloud-native, decoupled 3-tier system built for high throughput, sub-second telemetry delivery, and strict multi-tenant isolation.
+Fulmile is architected as a cloud-native, decoupled 3-tier system built for high throughput, sub-second telemetry delivery, and strict multi-tenant isolation.
 
 ```
 +==================================================================================================+
@@ -519,7 +519,7 @@ The diagram below details the continuous GPS location relay loop that powers zer
 
 ```
 +----------------+              +-------------------------+              +-----------------------+
-|  Driver App    |              |  TransitOps API Gateway  |              |  Public Cargo Tracker |
+|  Driver App    |              |  Fulmile API Gateway  |              |  Public Cargo Tracker |
 | (Mobile Client)|              |    (Socket.io Server)   |              |   (Browser / Leaflet) |
 +----------------+              +-------------------------+              +-----------------------+
        |                                     |                                       |
@@ -552,7 +552,7 @@ The diagram below details the continuous GPS location relay loop that powers zer
 
 ### 3.3 Multi-Tenant Carrier Hierarchy & Role-Based Access Control (RBAC)
 
-TransitOps enforces role-based access control across all operations. The system isolates data by `carrier_id` and grants fine-grained permissions:
+Fulmile enforces role-based access control across all operations. The system isolates data by `carrier_id` and grants fine-grained permissions:
 
 | System Role | Portal Navigation & Capabilities | Core Operational Permissions |
 | :--- | :--- | :--- |
@@ -762,7 +762,7 @@ During live production validation on **fulmile.vercel.app**, a cross-country fre
 # PART 2: Project Presentation Slide Deck
 
 ### Slide 1: Title & Platform Overview
-- **Title**: TransitOps — Smart Transport Operations & Freight Corridor Platform
+- **Title**: Fulmile — Smart Transport Operations & Freight Corridor Platform
 - **Subtitle**: Enterprise Fleet Management, Shared Capacity Marketplace & Real-Time Logistics
 - **Platform Stack**: React.js 18 · Node.js / Express 5 · PostgreSQL · Socket.io · Leaflet OpenStreetMap
 - **Live Deployment**: `fulmile.vercel.app`
@@ -773,7 +773,7 @@ During live production validation on **fulmile.vercel.app**, a cross-country fre
 - **Compliance Overhead**: Expired licenses and pending vehicle fitness certificates trigger roadside regulatory detentions.
 - **Delayed Settlements**: Disjointed expense tracking delays carrier profitability calculations by weeks.
 
-### Slide 3: The TransitOps Platform Solution
+### Slide 3: The Fulmile Platform Solution
 - **Shared Cargo Marketplace**: Instantly surfaces open weight capacity on vehicles already scheduled along active freight corridors.
 - **Single Dispatch Consolidation**: Merges shared cargo shipments directly into active dispatches with zero route duplication.
 - **100% Margin Economics**: Incremental shared freight yields pure operating profit with zero extra fuel expense.

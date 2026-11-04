@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>TransitOps — User Manual v1.0</title>
-<meta name="description" content="Complete user manual for TransitOps Smart Fleet Operations Management Platform."/>
+<title>Fulmile — User Manual v1.0</title>
+<meta name="description" content="Complete user manual for Fulmile Smart Fleet Operations Management Platform."/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
@@ -176,7 +176,7 @@ footer{margin-left:var(--sidebar);padding:1.75rem 3.5rem;border-top:1px solid va
   <div class="hbrand">
     <div class="hlogo">🚛</div>
     <div>
-      <div class="htitle">TransitOps</div>
+      <div class="htitle">Fulmile</div>
       <div class="hsub">Smart Fleet Operations Platform</div>
     </div>
   </div>
@@ -215,7 +215,7 @@ footer{margin-left:var(--sidebar);padding:1.75rem 3.5rem;border-top:1px solid va
 <!-- COVER -->
 <div class="cover">
   <div class="ceyebrow">Official Documentation · Confidential</div>
-  <h1>TransitOps<br>User Manual</h1>
+  <h1>Fulmile<br>User Manual</h1>
   <p class="csub">Complete guide to fleet management, real-time tracking,<br>driver compliance, and operational analytics.</p>
   <div class="chips">
     <span class="chip">Version 1.0</span>
@@ -230,7 +230,7 @@ footer{margin-left:var(--sidebar);padding:1.75rem 3.5rem;border-top:1px solid va
 <!-- 1. INTRODUCTION -->
 <section class="section" id="overview">
   <div class="sh"><div class="si">🏠</div><h2>1. Introduction &amp; System Overview</h2></div>
-  <p><strong>TransitOps</strong> is a centralized, real-time fleet operations management platform built for logistics companies. It solves four critical problems in a single unified system:</p>
+  <p><strong>Fulmile</strong> is a centralized, real-time fleet operations management platform built for logistics companies. It solves four critical problems in a single unified system:</p>
   <div class="fgrid">
     <div class="fcard"><div class="ficon">🗺</div><div class="ftitle">"Where Is My Cargo?"</div><div class="fdesc">Live GPS streaming + interactive Leaflet maps so clients track deliveries in real time.</div></div>
     <div class="fcard"><div class="ficon">🚛</div><div class="ftitle">Empty Miles Problem</div><div class="fdesc">Shared Capacity Marketplace — publish spare truck space for co-loading and maximize ROI per trip.</div></div>
@@ -268,9 +268,9 @@ footer{margin-left:var(--sidebar);padding:1.75rem 3.5rem;border-top:1px solid va
   </table></div>
   <h3>Setup Steps</h3>
   <div class="steps">
-    <div class="step"><div class="sn"></div><div class="sb"><strong>Create the database</strong><pre><code>psql -U postgres -c "CREATE DATABASE transitops;"</code></pre></div></div>
-    <div class="step"><div class="sn"></div><div class="sb"><strong>Run the schema migration</strong><pre><code>psql -U postgres -d transitops -f database\schema.sql</code></pre></div></div>
-    <div class="step"><div class="sn"></div><div class="sb"><strong>Load seed / demo data (recommended)</strong><pre><code>psql -U postgres -d transitops -f database\seed.sql</code></pre></div></div>
+    <div class="step"><div class="sn"></div><div class="sb"><strong>Create the database</strong><pre><code>psql -U postgres -c "CREATE DATABASE fulmile;"</code></pre></div></div>
+    <div class="step"><div class="sn"></div><div class="sb"><strong>Run the schema migration</strong><pre><code>psql -U postgres -d fulmile -f database\schema.sql</code></pre></div></div>
+    <div class="step"><div class="sn"></div><div class="sb"><strong>Load seed / demo data (recommended)</strong><pre><code>psql -U postgres -d fulmile -f database\seed.sql</code></pre></div></div>
     <div class="step"><div class="sn"></div><div class="sb"><strong>Install and start the backend API</strong><pre><code>cd backend &amp;&amp; npm install &amp;&amp; npm start
 # Runs on http://localhost:5000</code></pre></div></div>
     <div class="step"><div class="sn"></div><div class="sb"><strong>Install and start the frontend</strong><pre><code>cd frontend &amp;&amp; npm install &amp;&amp; npm start
@@ -282,7 +282,7 @@ footer{margin-left:var(--sidebar);padding:1.75rem 3.5rem;border-top:1px solid va
     <tbody>
       <tr><td><code>DB_HOST</code></td><td><code>localhost</code></td><td>PostgreSQL server hostname</td></tr>
       <tr><td><code>DB_PORT</code></td><td><code>5432</code></td><td>PostgreSQL server port</td></tr>
-      <tr><td><code>DB_NAME</code></td><td><code>transitops</code></td><td>Database name</td></tr>
+      <tr><td><code>DB_NAME</code></td><td><code>fulmile</code></td><td>Database name</td></tr>
       <tr><td><code>DB_USER</code></td><td><code>postgres</code></td><td>Database username</td></tr>
       <tr><td><code>DB_PASSWORD</code></td><td><em>set this</em></td><td>Database password</td></tr>
       <tr><td><code>JWT_SECRET</code></td><td><em>change in prod</em></td><td>Secret key for signing auth tokens</td></tr>
@@ -336,7 +336,7 @@ footer{margin-left:var(--sidebar);padding:1.75rem 3.5rem;border-top:1px solid va
 <!-- 4. ROLES -->
 <section class="section" id="roles">
   <div class="sh"><div class="si">👤</div><h2>4. User Roles &amp; Access Control</h2></div>
-  <p>TransitOps uses <strong>role-based access control (RBAC)</strong>. Your role is assigned at registration and controls which modules you can access.</p>
+  <p>Fulmile uses <strong>role-based access control (RBAC)</strong>. Your role is assigned at registration and controls which modules you can access.</p>
   <div class="rgrid">
     <div class="rc fm"><h4>🚛 Fleet Manager</h4><ul><li>Full access to all modules</li><li>Register vehicles &amp; drivers</li><li>Create &amp; dispatch trips</li><li>Manage maintenance files</li><li>View all reports &amp; analytics</li></ul></div>
     <div class="rc dr"><h4>👨‍✈️ Driver</h4><ul><li>View and act on own trips</li><li>Go Live GPS streaming</li><li>Pin location checkpoints</li><li>Log fuel fill-ups</li><li>Browse shared cargo</li></ul></div>
@@ -396,7 +396,7 @@ footer{margin-left:var(--sidebar);padding:1.75rem 3.5rem;border-top:1px solid va
   <div class="tw"><table>
     <thead><tr><th>Link</th><th>Visible To</th><th>Destination</th></tr></thead>
     <tbody>
-      <tr><td>🚛 TransitOps logo</td><td>Everyone</td><td><code>/dashboard</code></td></tr>
+      <tr><td>🚛 Fulmile logo</td><td>Everyone</td><td><code>/dashboard</code></td></tr>
       <tr><td>Dashboard</td><td>Everyone</td><td><code>/dashboard</code></td></tr>
       <tr><td>Vehicles</td><td>Fleet Manager</td><td><code>/vehicles</code></td></tr>
       <tr><td>Drivers</td><td>Fleet Manager, Safety Officer</td><td><code>/drivers</code></td></tr>
@@ -693,7 +693,7 @@ footer{margin-left:var(--sidebar);padding:1.75rem 3.5rem;border-top:1px solid va
 <section class="section" id="tracker">
   <div class="sh"><div class="si">📍</div><h2>15. Public Shipment Tracker</h2></div>
   <p>Route: <code>/track</code> or <code>/track/:tripId</code> · Access: <strong>Anyone — no login required</strong></p>
-  <p>This is the <strong>customer-facing tracking portal</strong>. Share the tracking URL with your clients — they never need a TransitOps account.</p>
+  <p>This is the <strong>customer-facing tracking portal</strong>. Share the tracking URL with your clients — they never need a Fulmile account.</p>
   <div class="callout tip"><div class="ci">💡</div><div><b>Easiest Way to Share</b>On any dispatched trip, click <strong>Open Tracker</strong>. The URL is automatically copied to your clipboard and opens in a new tab. Paste it to your client via WhatsApp or email.</div></div>
   <h3>What the Client Sees</h3>
   <ul>
@@ -707,7 +707,7 @@ footer{margin-left:var(--sidebar);padding:1.75rem 3.5rem;border-top:1px solid va
 <!-- 16. BUSINESS RULES -->
 <section class="section" id="rules">
   <div class="sh"><div class="si">📋</div><h2>16. Business Rules &amp; Automated Gating</h2></div>
-  <p>TransitOps enforces all the following rules <strong>automatically</strong> — both via filtered dropdowns on the frontend and validated on the server-side API.</p>
+  <p>Fulmile enforces all the following rules <strong>automatically</strong> — both via filtered dropdowns on the frontend and validated on the server-side API.</p>
   <div class="tw"><table>
     <thead><tr><th>Rule</th><th>What It Prevents</th></tr></thead>
     <tbody>
@@ -831,7 +831,7 @@ footer{margin-left:var(--sidebar);padding:1.75rem 3.5rem;border-top:1px solid va
     <thead><tr><th>Problem</th><th>Cause</th><th>Solution</th></tr></thead>
     <tbody>
       <tr><td><code>ECONNREFUSED</code> on startup</td><td>PostgreSQL not running</td><td>Start the PostgreSQL service on your system</td></tr>
-      <tr><td>Database does not exist</td><td>Schema not created</td><td>Run <code>CREATE DATABASE transitops;</code> then <code>schema.sql</code></td></tr>
+      <tr><td>Database does not exist</td><td>Schema not created</td><td>Run <code>CREATE DATABASE fulmile;</code> then <code>schema.sql</code></td></tr>
       <tr><td>Frontend shows blank page</td><td>Backend not running</td><td>Start backend first (<code>npm start</code> in <code>/backend</code>)</td></tr>
       <tr><td>CORS error in browser</td><td><code>FRONTEND_URL</code> mismatch in <code>.env</code></td><td>Ensure it matches your React dev server URL</td></tr>
     </tbody>
@@ -877,7 +877,7 @@ footer{margin-left:var(--sidebar);padding:1.75rem 3.5rem;border-top:1px solid va
 </main>
 
 <footer>
-  <div><strong>TransitOps v1.0</strong> — Smart Fleet Operations Management Platform<br>Stack: React.js · Node.js/Express · PostgreSQL · Socket.io</div>
+  <div><strong>Fulmile v1.0</strong> — Smart Fleet Operations Management Platform<br>Stack: React.js · Node.js/Express · PostgreSQL · Socket.io</div>
   <div style="text-align:right">For technical support, contact your system administrator.<br><em>End of Documentation</em></div>
 </footer>
 

@@ -84,7 +84,7 @@ export function Logo({ inverted = false }) {
         <circle cx="5" cy="15.5" r="1.6" fill="rgb(var(--ink))" />
         <circle cx="17" cy="5.5" r="1.6" fill="rgb(var(--ink))" />
       </svg>
-      TransitOps
+      Fulmile
     </span>
   );
 }
@@ -150,7 +150,7 @@ function PublicBar() {
   return (
     <header className="border-b border-line bg-surface">
       <div className="mx-auto flex max-w-content items-center justify-between px-4 py-3 sm:px-6">
-        <Link to="/" aria-label="TransitOps home"><Logo /></Link>
+        <Link to="/" aria-label="Fulmile home"><Logo /></Link>
         <nav aria-label="Public" className="flex items-center gap-1 text-[13px] font-medium">
           <NavLink to="/track" className={({ isActive }) => `rounded px-3 py-1.5 ${isActive ? 'text-ink' : 'text-muted hover:text-ink'}`}>Track cargo</NavLink>
           <NavLink to="/login" className={({ isActive }) => `rounded px-3 py-1.5 ${isActive ? 'text-ink' : 'text-muted hover:text-ink'}`}>Sign in</NavLink>
@@ -175,7 +175,7 @@ export default function AppShell({ children }) {
 
   useEffect(() => {
     const page = TITLES[location.pathname] || (location.pathname.startsWith('/track/') ? 'Track cargo' : null);
-    document.title = page ? `${page} · TransitOps` : 'TransitOps';
+    document.title = page ? `${page} · Fulmile` : 'Fulmile';
   }, [location.pathname]);
 
   const handleLogout = async () => {
@@ -207,14 +207,14 @@ export default function AppShell({ children }) {
 
       {/* Desktop rail */}
       <aside className="fixed inset-y-0 left-0 hidden w-[232px] flex-col bg-ink lg:flex">
-        <Link to={homePath} className="px-6 pb-2 pt-6" aria-label="TransitOps home"><Logo inverted /></Link>
+        <Link to={homePath} className="px-6 pb-2 pt-6" aria-label="Fulmile home"><Logo inverted /></Link>
         <NavList role={user?.role} />
         <UserFooter user={user} onLogout={handleLogout} />
       </aside>
 
       {/* Mobile / tablet top bar */}
       <header className="sticky top-0 z-20 flex items-center justify-between bg-ink px-4 py-3 lg:hidden">
-        <Link to={homePath} aria-label="TransitOps home"><Logo inverted /></Link>
+        <Link to={homePath} aria-label="Fulmile home"><Logo inverted /></Link>
         <button
           type="button"
           onClick={() => drawerRef.current?.showModal()}

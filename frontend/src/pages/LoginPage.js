@@ -60,7 +60,7 @@ export default function LoginPage() {
       lead="Sign in to dispatch, track and settle trips."
       scene={{ variant: 'gate', status }}
       readout={{ tone: status, text: READOUT[status], meta: 'JWT session' }}
-      footer={<>New to TransitOps? <Link to="/register" className="font-semibold text-ink underline decoration-signal decoration-2 underline-offset-4 hover:decoration-ink">Create an account</Link></>}
+      footer={<>New to Fulmile? <Link to="/register" className="font-semibold text-ink underline decoration-signal decoration-2 underline-offset-4 hover:decoration-ink">Create an account</Link></>}
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
@@ -73,7 +73,7 @@ export default function LoginPage() {
             onChange={handleChange}
             required
             autoComplete="email"
-            placeholder="manager@transitops.com"
+            placeholder="manager@fulmile.com"
             className={`field py-3 ${failed ? 'field-error' : ''}`}
           />
         </div>

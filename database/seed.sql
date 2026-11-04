@@ -1,6 +1,6 @@
 -- ============================================================
---  TransitOps Seed Data
---  Run after schema.sql: psql -U transitops_user -d transitops -f seed.sql
+--  Fulmile Seed Data
+--  Run after schema.sql: psql -U fulmile_user -d fulmile -f seed.sql
 -- ============================================================
 
 -- Roles

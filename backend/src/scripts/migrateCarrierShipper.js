@@ -116,16 +116,16 @@ async function migrate() {
 
     // 7. Ensure Default Carrier exists for legacy data
     const [defaultCarrier] = await Carrier.findOrCreate({
-      where: { company_name: 'TransitOps Logistics Corp' },
+      where: { company_name: 'Fulmile Logistics Corp' },
       defaults: {
-        company_name: 'TransitOps Logistics Corp',
+        company_name: 'Fulmile Logistics Corp',
         gst_number: '29AADCT1234F1ZH',
         address: '123 Fleet Street',
         city: 'Bangalore',
         state: 'Karnataka',
         pincode: '560001',
         contact_phone: '9876500000',
-        contact_email: 'ops@transitops.com'
+        contact_email: 'ops@fulmile.com'
       }
     });
     console.log('Default carrier company verified:', defaultCarrier.company_name);

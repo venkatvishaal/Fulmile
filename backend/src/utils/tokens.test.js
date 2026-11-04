@@ -13,5 +13,5 @@ test('session token carries id, role and token_version', () => {
 
 test('a token signed with another secret is rejected', () => {
   const token = signSession({ id: 'u1', email: 'a@b.c', token_version: 0 }, 'driver');
-  assert.throws(() => jwt.verify(token, 'transitops_jwt_secret_change_in_prod'));
+  assert.throws(() => jwt.verify(token, 'fulmile_jwt_secret_change_in_prod'));
 });

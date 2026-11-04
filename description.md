@@ -1,6 +1,6 @@
-# TransitOps — Smart Transport Operations Platform
+# Fulmile — Smart Transport Operations Platform
 
-TransitOps is a centralized transport operations platform designed to optimize fleet utilization, automate logistics dispatch, enforce compliance gates, track maintenance lifecycles, and monitor operational finances.
+Fulmile is a centralized transport operations platform designed to optimize fleet utilization, automate logistics dispatch, enforce compliance gates, track maintenance lifecycles, and monitor operational finances.
 
 ## Core Features & Business Logic
 

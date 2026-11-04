@@ -43,7 +43,7 @@ export default function Onboarding({ user }) {
   const last = step === steps.length - 1;
 
   return (
-    <Modal isOpen onClose={finish} title={`Welcome to TransitOps, ${user.name?.split(' ')[0] || 'there'}`} description={`Step ${step + 1} of ${steps.length}`}>
+    <Modal isOpen onClose={finish} title={`Welcome to Fulmile, ${user.name?.split(' ')[0] || 'there'}`} description={`Step ${step + 1} of ${steps.length}`}>
       <ol className="mb-5 flex gap-1.5" aria-hidden="true">
         {steps.map((s, i) => <li key={s[0]} className={`h-1 flex-1 rounded-full ${i <= step ? 'bg-ink' : 'bg-line'}`} />)}
       </ol>

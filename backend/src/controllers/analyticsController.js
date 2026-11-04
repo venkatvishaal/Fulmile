@@ -322,7 +322,7 @@ const analyticsController = {
       const csv = parser.parse(vehicles);
 
       res.header('Content-Type', 'text/csv');
-      res.header('Content-Disposition', 'attachment; filename="transitops_fleet_report.csv"');
+      res.header('Content-Disposition', 'attachment; filename="fulmile_fleet_report.csv"');
       res.send(csv);
     } catch (error) {
       console.error('CSV export error:', error);

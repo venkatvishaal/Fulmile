@@ -1,6 +1,6 @@
 -- ============================================================
---  TransitOps PostgreSQL Schema
---  Run: psql -U transitops_user -d transitops -f schema.sql
+--  Fulmile PostgreSQL Schema
+--  Run: psql -U fulmile_user -d fulmile -f schema.sql
 -- ============================================================
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";

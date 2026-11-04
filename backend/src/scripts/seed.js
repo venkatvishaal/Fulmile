@@ -24,10 +24,10 @@ const seedDatabase = async () => {
 
     console.log('Seeding demo users...');
     const users = [
-      { name: 'Fleet Manager User', email: 'manager@transitops.com', password_hash: 'password123', role_id: roleRecords['fleet_manager'].id },
-      { name: 'Alex Driver', email: 'alex@transitops.com', password_hash: 'password123', role_id: roleRecords['driver'].id },
-      { name: 'Safety Officer User', email: 'safety@transitops.com', password_hash: 'password123', role_id: roleRecords['safety_officer'].id },
-      { name: 'Financial Analyst User', email: 'analyst@transitops.com', password_hash: 'password123', role_id: roleRecords['financial_analyst'].id }
+      { name: 'Fleet Manager User', email: 'manager@fulmile.com', password_hash: 'password123', role_id: roleRecords['fleet_manager'].id },
+      { name: 'Alex Driver', email: 'alex@fulmile.com', password_hash: 'password123', role_id: roleRecords['driver'].id },
+      { name: 'Safety Officer User', email: 'safety@fulmile.com', password_hash: 'password123', role_id: roleRecords['safety_officer'].id },
+      { name: 'Financial Analyst User', email: 'analyst@fulmile.com', password_hash: 'password123', role_id: roleRecords['financial_analyst'].id }
     ];
 
     for (const u of users) {
@@ -41,16 +41,16 @@ const seedDatabase = async () => {
     // Create default carrier for existing seed data
     console.log('Seeding default carrier company...');
     const [defaultCarrier] = await Carrier.findOrCreate({
-      where: { company_name: 'TransitOps Logistics Corp' },
+      where: { company_name: 'Fulmile Logistics Corp' },
       defaults: {
-        company_name: 'TransitOps Logistics Corp',
+        company_name: 'Fulmile Logistics Corp',
         gst_number: '29AADCT1234F1ZH',
         address: '123 Fleet Street',
         city: 'Bangalore',
         state: 'Karnataka',
         pincode: '560001',
         contact_phone: '9876500000',
-        contact_email: 'ops@transitops.com'
+        contact_email: 'ops@fulmile.com'
       },
       transaction: t
     });
@@ -88,7 +88,7 @@ const seedDatabase = async () => {
     ];
 
     // Link driver Alex to the alex@ login so row-level security shows Alex their own trips.
-    const alexUser = await User.findOne({ where: { email: 'alex@transitops.com' }, transaction: t });
+    const alexUser = await User.findOne({ where: { email: 'alex@fulmile.com' }, transaction: t });
     for (const d of drivers) {
       await Driver.findOrCreate({
         where: { license_number: d.license_number },

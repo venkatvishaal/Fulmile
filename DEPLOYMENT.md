@@ -1,4 +1,4 @@
-# Deploying TransitOps
+# Deploying Fulmile
 
 Production setup: **Neon** (PostgreSQL) → **Render** (Node/Express API + Socket.io) → **Vercel** (React build).
 All three have free tiers. Total time: about 20–30 minutes.
@@ -30,7 +30,7 @@ Browser ──HTTPS──▶ Vercel (frontend/build)
 
 ## 1. Database — Neon
 
-1. Neon dashboard → **New Project** → name `transitops`, Postgres 16, pick a region close to your users (e.g. *AWS Asia Pacific (Singapore)*).
+1. Neon dashboard → **New Project** → name `fulmile`, Postgres 16, pick a region close to your users (e.g. *AWS Asia Pacific (Singapore)*).
 2. **Connection Details** → turn **off** "Pooled connection" and copy the **direct** connection string. It looks like:
    `postgresql://<user>:<password>@<host>.neon.tech/neondb?sslmode=require`
    Keep it secret — it is your `DATABASE_URL`.
@@ -47,12 +47,12 @@ Browser ──HTTPS──▶ Vercel (frontend/build)
      $env:DATABASE_URL="<your neon url>"; npm run db:seed
      ```
      Demo logins created (all with password `password123` — change or delete them before real use):
-     `manager@transitops.com` (fleet manager), `alex@transitops.com` (driver),
-     `safety@transitops.com` (safety officer), `analyst@transitops.com` (financial analyst).
+     `manager@fulmile.com` (fleet manager), `alex@fulmile.com` (driver),
+     `safety@fulmile.com` (safety officer), `analyst@fulmile.com` (financial analyst).
    - **Clean production start:** in the SQL Editor run only the `INSERT INTO roles …` block at the top of
      [`database/seed.sql`](database/seed.sql). Roles **must** exist or registration fails.
 5. **Auth + row-level security migration** (adds the session columns, creates the
-   restricted `transitops_app` role and the RLS policies). Safe to re-run; run it again after any restore:
+   restricted `fulmile_app` role and the RLS policies). Safe to re-run; run it again after any restore:
    ```bash
    cd backend
    DATABASE_URL="<your neon url>" npm run db:migrate-auth
@@ -68,10 +68,10 @@ Browser ──HTTPS──▶ Vercel (frontend/build)
 - **Neon point-in-time restore** is built in (Neon → Branches → Restore). The free plan keeps a short history window, so also:
 - **Nightly encrypted dump** via [`.github/workflows/db-backup.yml`](.github/workflows/db-backup.yml). In GitHub → Settings → Secrets → Actions add
   `DATABASE_URL` and `BACKUP_PASSPHRASE` (a long random string; store it in your password manager, since without it the dumps can't be read).
-  Run it once by hand from the Actions tab to check it works. Each run uploads `transitops.sql.gz.gpg` as an artifact kept 30 days.
+  Run it once by hand from the Actions tab to check it works. Each run uploads `fulmile.sql.gz.gpg` as an artifact kept 30 days.
 - **Restore a dump:**
   ```bash
-  gpg --batch --passphrase "$BACKUP_PASSPHRASE" -d transitops.sql.gz.gpg | gunzip | psql "$TARGET_DATABASE_URL"
+  gpg --batch --passphrase "$BACKUP_PASSPHRASE" -d fulmile.sql.gz.gpg | gunzip | psql "$TARGET_DATABASE_URL"
   cd backend && DATABASE_URL="$TARGET_DATABASE_URL" npm run db:migrate-auth   # dumps skip role grants
   ```
 
@@ -84,7 +84,7 @@ Browser ──HTTPS──▶ Vercel (frontend/build)
 
    | Field | Value |
    |---|---|
-   | Name | `transitops-backend` (becomes `https://transitops-backend.onrender.com`) |
+   | Name | `fulmile-backend` (becomes `https://fulmile-backend.onrender.com`) |
    | Root Directory | `backend` |
    | Runtime | Node |
    | Build Command | `npm install` |
@@ -100,13 +100,13 @@ Browser ──HTTPS──▶ Vercel (frontend/build)
    | `JWT_SECRET` | **required** (the server won't start without it): a long random string — generate with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
    | `JWT_EXPIRE` | `7d` |
    | `NODE_ENV` | `production` |
-   | `FRONTEND_URL` | your Vercel URL, e.g. `https://transitops.vercel.app` |
+   | `FRONTEND_URL` | your Vercel URL, e.g. `https://fulmile.vercel.app` |
    | `SENTRY_DSN` | optional; from a Sentry **Node/Express** project. Error tracking is off without it |
 
    Do **not** set `PORT`; Render injects it.
 4. **Create Web Service** and wait for "Live". Check:
    ```bash
-   curl https://transitops-backend.onrender.com/api/health
+   curl https://fulmile-backend.onrender.com/api/health
    # {"ok":true}
    ```
    The logs should show `Database connection has been established successfully.`
@@ -131,7 +131,7 @@ Browser ──HTTPS──▶ Vercel (frontend/build)
 
    | Key | Value |
    |---|---|
-   | `REACT_APP_API_BASE_URL` | `https://transitops-backend.onrender.com/api` (your Render URL + `/api`, no trailing slash) |
+   | `REACT_APP_API_BASE_URL` | `https://fulmile-backend.onrender.com/api` (your Render URL + `/api`, no trailing slash) |
    | `REACT_APP_SENTRY_DSN` | optional; from a Sentry **React** project |
 
    The Socket.io URL is derived from this automatically (it strips `/api`).
@@ -144,7 +144,7 @@ Browser ──HTTPS──▶ Vercel (frontend/build)
 
 ## 4. Optional hardening
 
-- **Lock CORS to your site.** `backend/src/server.js` currently accepts any origin for both Express and Socket.io. Replace the two `origin` callbacks with your Vercel domain, e.g. `origin: ['https://transitops.vercel.app']`.
+- **Lock CORS to your site.** `backend/src/server.js` currently accepts any origin for both Express and Socket.io. Replace the two `origin` callbacks with your Vercel domain, e.g. `origin: ['https://fulmile.vercel.app']`.
 - **Custom domains:** add on Vercel (frontend) and/or Render (API). If the API domain changes, update `REACT_APP_API_BASE_URL` and redeploy the frontend.
 - **Remove demo users** (or change their passwords) if you seeded them.
 - **Keep the API warm** on the free tier with an uptime pinger hitting `/api/health` every 10 minutes.

@@ -36,7 +36,7 @@ export async function exportExcel({ fileName, sheets }) {
   const mod = await import('exceljs');
   const ExcelJS = mod.default ?? mod;
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'TransitOps';
+  wb.creator = 'Fulmile';
   wb.created = new Date();
 
   sheets.forEach(({ name, title, columns, rows, totals }) => {
@@ -45,7 +45,7 @@ export async function exportExcel({ fileName, sheets }) {
 
     const titleRow = ws.addRow([title]);
     titleRow.font = { bold: true, size: 14 };
-    ws.addRow([`Generated ${stamp()} · TransitOps`]).font = { italic: true, size: 9, color: { argb: 'FF6B6A65' } };
+    ws.addRow([`Generated ${stamp()} · Fulmile`]).font = { italic: true, size: 9, color: { argb: 'FF6B6A65' } };
 
     const head = ws.addRow(columns.map((c) => c.header));
     head.eachCell((cell) => {
@@ -94,7 +94,7 @@ export async function exportPdf({ fileName, title, subtitle, summary = [], secti
   doc.setTextColor(245, 243, 238);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('TransitOps', margin + 28, 36);
+  doc.text('Fulmile', margin + 28, 36);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.text(`Generated ${stamp()}`, width - margin, 36, { align: 'right' });
@@ -148,7 +148,7 @@ export async function exportPdf({ fileName, title, subtitle, summary = [], secti
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(107, 106, 101);
-    doc.text(`TransitOps · ${title}`, margin, doc.internal.pageSize.getHeight() - 20);
+    doc.text(`Fulmile · ${title}`, margin, doc.internal.pageSize.getHeight() - 20);
     doc.text(`Page ${i} of ${pages}`, width - margin, doc.internal.pageSize.getHeight() - 20, { align: 'right' });
   }
 

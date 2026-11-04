@@ -103,7 +103,7 @@ export default function ReportsPage() {
   const handleExportCSV = async () => {
     try {
       const res = await analyticsService.exportCSV();
-      downloadBlob(res.data, `transitops_fleet_register_${fileDate()}.csv`);
+      downloadBlob(res.data, `fulmile_fleet_register_${fileDate()}.csv`);
     } catch (err) {
       toast.error(err.response?.status === 403 ? 'You do not have access to this export.' : 'CSV export failed.');
     }
@@ -111,7 +111,7 @@ export default function ReportsPage() {
 
   const runExport = async (format) => {
     const { summary, costs, efficiency, costTotals, completedTripsList, tripTotals } = reportTables(data);
-    const name = `transitops_fleet_report_${fileDate()}`;
+    const name = `fulmile_fleet_report_${fileDate()}`;
     try {
       if (format === 'xlsx') {
         const money = '₹#,##0';

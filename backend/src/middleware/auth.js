@@ -17,7 +17,7 @@ const withRlsContext = async (req, res, next) => {
       "SELECT set_config('app.user_id', :id, true), set_config('app.role', :role, true)",
       { replacements: { id: req.user.id, role: req.user.role }, transaction: t }
     );
-    await sequelize.query('SET LOCAL ROLE transitops_app', { transaction: t });
+    await sequelize.query('SET LOCAL ROLE fulmile_app', { transaction: t });
   } catch (error) {
     await t.rollback();
     throw error;
