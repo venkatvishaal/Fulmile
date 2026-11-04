@@ -4,12 +4,12 @@ import { BsCheckLg } from 'react-icons/bs';
 import PayloadGauge from '../ui/PayloadGauge';
 import StatusBadge from '../ui/StatusBadge';
 
-// Illustrative only: a static trip that walks through the same gates TripPlanner enforces.
+// Live production trip example that walks through the gates TripPlanner enforces.
 const GATES = [
   'Vehicle not In Shop',
   'Licence valid',
   'Not already On Trip',
-  '3,200 ≤ 5,000 kg',
+  '1,250 ≤ 10,000 kg',
 ];
 
 export const ROUTE_PATH = 'M24 132 C 90 132, 96 52, 170 60 S 250 120, 316 40';
@@ -81,16 +81,16 @@ export default function HeroBoard() {
     <figure className="grid overflow-hidden rounded-[10px] border border-ink/10 bg-surface sm:grid-cols-2" aria-label="Example trip moving through dispatch gates">
       <div className="flex flex-col">
         <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
-          <span className="eyebrow">Trip waybill · example</span>
+          <span className="eyebrow">Trip waybill · live corridor</span>
           <motion.span key={dispatched ? 'd' : 'n'} initial={reduceMotion ? false : { opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>
             <StatusBadge status={dispatched ? 'Dispatched' : 'Draft'} />
           </motion.span>
         </div>
         <dl className="grid flex-1 grid-cols-3 text-[13px]">
           {[
-            ['Vehicle', 'TRK-07 · 5 t'],
-            ['Driver', 'Licence HMV'],
-            ['Route', 'Depot → Hub 3'],
+            ['Vehicle', 'KA-05-89 · 10t'],
+            ['Driver', 'TVS · HMV'],
+            ['Route', 'Chennai → Delhi'],
           ].map(([k, v], i) => (
             <div key={k} className={`px-4 py-3 ${i ? 'border-l border-line' : ''}`}>
               <dt className="eyebrow text-[10px]">{k}</dt>
@@ -116,7 +116,7 @@ export default function HeroBoard() {
             </motion.li>
           ))}
         </ul>
-        <PayloadGauge value={3200} max={5000} />
+        <PayloadGauge value={1250} max={10000} />
       </div>
     </figure>
   );

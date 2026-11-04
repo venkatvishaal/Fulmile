@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { Link } from 'react-router-dom';
 import {
-  BsArrowRight, BsArrowUpRight, BsList, BsX, BsGeoAlt, BsBroadcast, BsPinMap, BsLink45Deg,
+  BsArrowRight, BsArrowUpRight, BsList, BsX, BsGeoAlt, BsBroadcast, BsPinMap, BsLink45Deg, BsBoxSeam,
 } from 'react-icons/bs';
 import { Logo } from '../components/layout/AppShell';
 import HeroBoard, { RouteLine } from '../components/landing/HeroBoard';
@@ -45,6 +45,7 @@ function PillCta({ to, children, tone = 'ink', className = '' }) {
   const tones = {
     ink: 'bg-ink text-paper',
     paper: 'bg-paper text-ink',
+    signal: 'bg-signal text-ink',
   };
   return (
     <Link
@@ -100,7 +101,7 @@ function LandingNav() {
       <div
         className={`mx-auto flex items-center justify-between rounded-full border py-1.5 pl-4 pr-1.5 transition-[max-width,background-color,border-color,box-shadow] duration-500 ease-[cubic-bezier(.2,.8,.2,1)] sm:pl-5 ${
           scrolled
-            ? 'max-w-[920px] border-ink/10 bg-paper/80 shadow-[0_12px_40px_-18px_rgb(var(--ink)/0.35)] backdrop-blur-md'
+            ? 'max-w-[960px] border-ink/10 bg-paper/85 shadow-[0_12px_40px_-18px_rgb(var(--ink)/0.35)] backdrop-blur-md'
             : 'max-w-[1336px] border-transparent bg-transparent'
         }`}
       >
@@ -111,7 +112,8 @@ function LandingNav() {
           ))}
         </nav>
         <div className="hidden items-center gap-1 md:flex">
-          <Link to="/track" className="hidden rounded-full px-3.5 py-2 text-[13px] font-medium text-ink/60 transition-colors hover:text-ink lg:inline-flex">Track cargo</Link>
+          <Link to="/book-freight" className="rounded-full px-3 py-2 text-[13px] font-medium text-ink/70 transition-colors hover:text-ink">Book freight</Link>
+          <Link to="/track" className="rounded-full px-3 py-2 text-[13px] font-medium text-ink/70 transition-colors hover:text-ink">Track cargo</Link>
           <Link to="/login" className="rounded-full px-3.5 py-2 text-[13px] font-medium text-ink/60 transition-colors hover:text-ink">Sign in</Link>
           <Link to="/register" className="rounded-full bg-ink px-4 py-2 text-[13px] font-semibold text-paper transition-colors hover:bg-ink/85">Get started</Link>
         </div>
@@ -141,8 +143,9 @@ function LandingNav() {
           </nav>
           <div className="mt-auto grid gap-2">
             <Link to="/register" className="rounded-full bg-signal py-3.5 text-center text-sm font-semibold text-ink">Get started</Link>
-            <Link to="/login" className="rounded-full border border-paper/20 py-3.5 text-center text-sm font-semibold">Sign in</Link>
+            <Link to="/book-freight" className="rounded-full border border-paper/20 py-3.5 text-center text-sm font-semibold">Book freight</Link>
             <Link to="/track" className="rounded-full border border-paper/20 py-3.5 text-center text-sm font-semibold">Track cargo</Link>
+            <Link to="/login" className="rounded-full border border-paper/20 py-3.5 text-center text-sm font-semibold">Sign in</Link>
           </div>
         </div>
       </dialog>
@@ -174,7 +177,7 @@ function Stage({ heroRef, progress, offset, className }) {
   );
 }
 
-const HEADLINE = ['Dispatch only', 'what’s road‑ready.', 'Track every kilo.'];
+const HEADLINE = ['Dispatch only', 'what’s road‑ready.', 'Monetize every kilo.'];
 
 function Hero() {
   const ref = useRef(null);
@@ -191,17 +194,17 @@ function Hero() {
           <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 -z-10 w-[52%] bg-gradient-to-r from-paper from-55% to-transparent" />
           <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-32 bg-gradient-to-t from-paper to-transparent" />
           <span className="hud pointer-events-none absolute right-[max(3vw,24px)] top-24 flex items-center gap-2 rounded-full border border-ink/10 bg-paper/80 px-3 py-1.5 text-ink/60 backdrop-blur-sm">
-            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-signal" />Illustrative scene · 4 trucks · gates 4/4
+            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-signal" />Live Corridor · Chennai → Delhi · KA-05-89
           </span>
         </>
       )}
 
       <div className={`${WRAP} flex flex-col pb-12 pt-24 sm:pt-28 lg:min-h-[max(760px,100svh)] lg:pb-14`}>
         <p className="hud flex items-center gap-2.5 text-muted">
-          <span aria-hidden="true" className="h-2 w-2 rounded-[2px] bg-signal" />Fleet &amp; logistics operations
+          <span aria-hidden="true" className="h-2 w-2 rounded-[2px] bg-signal" />Smart Transport Operations &amp; Shared Freight Corridor Platform
         </p>
 
-        <div className="mt-8 w-full lg:mt-auto lg:max-w-[520px]">
+        <div className="mt-8 w-full lg:mt-auto lg:max-w-[530px]">
           <h1 className="display-hero text-ink">
             {HEADLINE.map((line, i) => (
               <span key={line} className="block overflow-hidden pb-[0.05em]">
@@ -235,14 +238,16 @@ function Hero() {
           {!desktop && <Stage heroRef={ref} progress={scrollYProgress} offset={[0, 0]} className="relative -mx-5 mt-8 h-[52svh] min-h-[320px] sm:-mx-8" />}
 
           <Reveal delay={0.35}>
-            <p className="mt-7 max-w-[36ch] text-[15.5px] leading-[1.6] text-ink/70">
-              One ledger for vehicles, drivers, dispatch, maintenance, fuel and ROI. Unsafe assignments are refused
-              before they leave the yard, shippers watch cargo move live, and half-empty trucks sell their spare space.
+            <p className="mt-7 max-w-[40ch] text-[15.5px] leading-[1.6] text-ink/70">
+              One unified platform for fleet carriers and freight shippers. Triple-lock compliance prevents unsafe runs before they leave the yard, zero-login GPS tracks cargo live, and the Single Dispatch Rule merges shared corridor loads at 100% net margin.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-2.5">
               <PillCta to="/register">Set up your fleet</PillCta>
-              <Link to="/track" className="inline-flex items-center gap-2 rounded-full border border-ink/15 bg-paper/70 px-5 py-3 text-[14px] font-semibold text-ink transition-colors hover:border-ink">
-                <BsGeoAlt aria-hidden="true" /> Track a shipment
+              <Link to="/book-freight" className="inline-flex items-center gap-2 rounded-full border border-ink/15 bg-paper/70 px-4 py-3 text-[14px] font-semibold text-ink transition-colors hover:border-ink">
+                <BsBoxSeam aria-hidden="true" /> Book freight
+              </Link>
+              <Link to="/track" className="inline-flex items-center gap-2 rounded-full border border-ink/15 bg-paper/70 px-4 py-3 text-[14px] font-semibold text-ink transition-colors hover:border-ink">
+                <BsGeoAlt aria-hidden="true" /> Track cargo
               </Link>
             </div>
           </Reveal>
@@ -255,7 +260,16 @@ function Hero() {
 
 /* ── Rule marquee ───────────────────────────────────────── */
 
-const RULES = ['No expired licences', 'No double bookings', 'No overloads', 'Nothing In Shop leaves the yard', 'Live GPS for every shipper'];
+const RULES = [
+  'No expired licences',
+  'Corridor cargo sharing @ 100% net margin',
+  'No double bookings',
+  'No payload overloads',
+  'Shop-locked vehicle safety',
+  'Zero-login public GPS telemetry',
+  'Instant trip financial settlement',
+  'Individual & Corporate B2B GST freight',
+];
 
 function Marquee() {
   const row = (hidden) => (
@@ -278,10 +292,10 @@ function Marquee() {
 /* ── Problem → rule ledger ──────────────────────────────── */
 
 const LEDGER = [
-  ['“Where is my cargo?”', 'Drivers broadcast live GPS; shippers follow a public tracking link on an OpenStreetMap view with route trail and speed.'],
-  ['Empty miles on part-loaded trucks', 'Remaining weight capacity is calculated per trip and can be published to a shared marketplace at a price per kg.'],
-  ['Unsafe or non-compliant dispatch', 'Expired licences, suspended drivers, vehicles In Shop or Retired, double bookings and overloads are blocked at dispatch.'],
-  ['Costs scattered across spreadsheets', 'Fuel logs, expenses and maintenance roll up into utilisation, fuel efficiency and per-vehicle ROI.'],
+  ['“Where is my cargo right now?”', 'Drivers stream continuous HTML5 GPS coordinates via WebSockets; shippers follow a zero-login public tracking link on OpenStreetMap with live speed, heading, and geocoded checkpoints.'],
+  ['Empty miles & wasted payload capacity', 'Remaining tonnage is automatically calculated per dispatched trip and surfaced to shippers. The Single Dispatch Rule merges shared cargo en-route at 100% net margin pure profit.'],
+  ['Unsafe dispatches & roadside detentions', 'Expired commercial licences, suspended drivers, vehicles In Shop or Retired, double bookings, and tonnage overloads are strictly refused by automated pre-dispatch gating.'],
+  ['Financial blindspots & manual freight billing', 'Automated Completed Trip Financial Settlement immediately reconciles primary quotes, shared cargo revenue, and fuel receipts into clear net operating profit and margin %.'],
 ];
 
 function Ledger() {
@@ -290,9 +304,9 @@ function Ledger() {
       <div className={WRAP}>
         <Statement
           index="01"
-          label="Problem → rule"
-          title="Four failures. Four rules."
-          aside="Instead of trusting people to remember policy, TransitOps writes it into the dispatch path."
+          label="Problem → solution"
+          title="Four structural failures. Four automated rules."
+          aside="Instead of trusting people to remember manual policy, TransitOps builds operational compliance and financial reconciliation directly into the dispatch engine."
         />
         <div className="mt-[clamp(56px,7vw,112px)] border-b border-ink/15">
           {LEDGER.map(([problem, rule], i) => (
@@ -352,14 +366,14 @@ function TrackingTile() {
   const [live, setLive] = useState(true);
   const [count, setCount] = useState(0);
   const points = [
-    [BsBroadcast, 'Go Live', 'Drivers stream device geolocation to the server over Socket.io.'],
-    [BsPinMap, 'Manual checkpoints', 'Drop a pin with a reverse-geocoded place name when streaming drops.'],
-    [BsLink45Deg, 'Public link', 'Customers open /track with a trip ID — no account needed.'],
+    [BsBroadcast, 'Live WebSocket Stream', 'Drivers broadcast HTML5 geolocation coordinates directly to the tracking room with sub-second latency.'],
+    [BsPinMap, 'Geocoded Checkpoints', 'Log waypoints with reverse-geocoded place names and timestamps even when cellular data fluctuates.'],
+    [BsLink45Deg, 'Zero-Login Public URL', 'Customers track shipments at /track with a unique shipment tracking code — zero credentials or app needed.'],
   ];
   return (
     <div className={`${TILE} spotlight-dark flex min-h-[600px] flex-col bg-ink p-8 text-paper lg:p-12`}>
       <div className="flex items-start justify-between gap-6">
-        <TileHead label="Real-time tracking" title="The shipper sees what the driver sees." inverted />
+        <TileHead label="Real-time GPS tracking" title="The shipper watches cargo move in real time." inverted />
         <button
           type="button"
           aria-pressed={live}
@@ -390,13 +404,13 @@ function TrackingTile() {
 function CapacityTile() {
   return (
     <div className={`${TILE} spotlight flex flex-col border border-ink/10 bg-surface p-8 lg:p-10`}>
-      <TileHead label="Shared capacity" title="Sell the space you were going to haul empty." />
+      <TileHead label="Corridor consolidation" title="Turn empty payload capacity into 100% net margin." />
       <p className="mt-4 text-[15px] leading-relaxed text-ink/65">
-        A dispatched trip publishes its remaining weight with a ₹/kg quote. Other shippers book it from Shared cargo.
+        Dispatched trucks publish unutilized tonnage along active routes (e.g. Chennai → Delhi). The Single Dispatch Rule merges shared cargo onto existing trips with ₹0 extra fuel cost, delivering pure profit.
       </p>
       <div className="mt-auto pt-8">
         <CargoContainer3D />
-        <p className="hud text-muted">Example · 5,000 kg vehicle · 3,200 booked · 1,800 published</p>
+        <p className="hud text-muted">Example · 10,000 kg truck · 1,000 kg base · 250 kg shared · 8,750 kg open</p>
       </div>
     </div>
   );
@@ -404,14 +418,14 @@ function CapacityTile() {
 
 function GatingTile() {
   const gates = [
-    ['Vehicle state', 'Retired and In Shop vehicles never appear in the dispatch pool.'],
-    ['Driver compliance', 'Expired licences and Suspended drivers cannot be assigned.'],
-    ['No double booking', 'Anything already On Trip is unavailable until the trip completes.'],
-    ['Payload limit', 'Cargo weight is checked against the vehicle’s max load.'],
+    ['Vehicle road readiness', 'Retired and In Shop vehicles never appear in the active dispatch pool.'],
+    ['Driver license compliance', 'Expired commercial licences, pending renewals, and suspended drivers cannot be assigned.'],
+    ['Single-active assignment', 'Vehicles and drivers already On Trip are locked from duplicate dispatches.'],
+    ['Payload tonnage ceiling', 'Base freight plus combined shared bookings are checked strictly against certified max load.'],
   ];
   return (
     <div className={`${TILE} spotlight border border-ink/10 bg-surface p-8 lg:p-10`}>
-      <TileHead label="Dispatch gating" title="Unsafe trips don’t get a dispatch button." />
+      <TileHead label="Pre-dispatch compliance gating" title="Unsafe trips don’t get a dispatch button." />
       <ol className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2">
         {gates.map(([t, d], i) => (
           <li key={t} className="border-t border-ink/10 pt-4">
@@ -428,12 +442,12 @@ function GatingTile() {
 function MaintenanceTile() {
   return (
     <div className={`${TILE} spotlight flex flex-col border border-ink/10 bg-paper p-8 lg:p-10`}>
-      <TileHead label="Shop locking" title="Open a repair log, the truck leaves the pool." />
+      <TileHead label="Maintenance lifecycle" title="Open a repair log, the truck leaves the yard pool." />
       <div className="mt-auto pt-10" aria-label="Available changes to In Shop when a log opens, and back when it closes">
         <div className="flex items-center justify-between"><StatusBadge status="Available" /><StatusBadge status="In Shop" /></div>
         <div className="hud mt-4 grid gap-2 text-muted">
-          <span className="flex items-center gap-2"><span className="h-px flex-1 bg-ink/40" />log opened →</span>
-          <span className="flex items-center gap-2">← log closed<span className="h-px flex-1 bg-ink/40" /></span>
+          <span className="flex items-center gap-2"><span className="h-px flex-1 bg-ink/40" />service opened →</span>
+          <span className="flex items-center gap-2">← work order certified<span className="h-px flex-1 bg-ink/40" /></span>
         </div>
       </div>
     </div>
@@ -442,13 +456,14 @@ function MaintenanceTile() {
 
 function AnalyticsTile() {
   const formulas = [
-    ['Fleet utilisation', 'on trip ÷ available fleet × 100'],
-    ['Fuel efficiency', 'km ÷ litres consumed'],
-    ['Vehicle ROI', '(revenue − costs) ÷ acquisition'],
+    ['Gross Revenue', 'primary quote + shared cargo revenue'],
+    ['Net Operating Profit', 'gross revenue − total fuel expense'],
+    ['Net Profit Margin', '(net profit ÷ gross revenue) × 100'],
+    ['Corridor Fuel Efficiency', 'total km ÷ litres consumed'],
   ];
   return (
     <div className={`${TILE} spotlight-dark flex flex-col bg-ink p-8 text-paper lg:p-10`}>
-      <TileHead label="Reports" title="Numbers from the ledger, not a spreadsheet." inverted />
+      <TileHead label="Financial intelligence" title="Instant settlement ledger on trip completion." inverted />
       <dl className="mt-auto divide-y divide-paper/10 pt-8">
         {formulas.map(([k, v]) => (
           <div key={k} className="py-3.5">
@@ -468,8 +483,8 @@ function Features() {
         <Statement
           index="02"
           label="Features"
-          title="One board for the yard, the road and the books."
-          aside="Five modules share one ledger, so a repair log, a dispatch and a fuel receipt all move the same numbers."
+          title="Engineered for carriers, built for shippers."
+          aside="Five integrated modules share a single real-time ledger, uniting fleet operations, corridor load consolidation, and automated financial settlements."
         />
         <div className="mt-[clamp(56px,7vw,112px)] grid gap-4 lg:grid-cols-12">
           <Reveal className="lg:col-span-8 lg:row-span-2"><TrackingTile /></Reveal>
@@ -486,11 +501,11 @@ function Features() {
 /* ── How it works: sticky 3D conveyor ───────────────────── */
 
 const STEPS = [
-  ['Register assets', 'Vehicles with capacity and odometer; drivers with licence category and expiry.', 'Available'],
-  ['Draft a trip', 'Cargo weight, origin, destination. Only eligible vehicles and drivers are offered.', 'Draft'],
-  ['Dispatch', 'Gates pass, the trip goes out, vehicle and driver flip to On Trip.', 'Dispatched'],
-  ['Run it live', 'Driver goes live on GPS; spare capacity can be shared and booked en route.', 'On Trip'],
-  ['Complete', 'Odometer updates, fuel and expenses are logged, assets return to Available.', 'Completed'],
+  ['Onboard or join carrier', 'Fleet operators register a company or join an existing carrier via directory; shippers onboard as Individual or Corporate B2B with GST.', 'Available'],
+  ['Book & match corridors', 'Shippers request cargo movement; the platform matches active corridors and offers remaining vehicle capacity at optimized rates.', 'Draft'],
+  ['Pre-flight gated dispatch', 'Triple-lock validation confirms valid driver licenses, roadworthy vehicles, and payload limits before dispatch.', 'Dispatched'],
+  ['Live telemetry & shared load', 'Driver broadcasts real-time GPS telemetry; secondary shared cargo merges directly into the active corridor run at 100% margin.', 'On Trip'],
+  ['Completed trip settlement', 'Trip completion records final odometer, logs fuel expense receipts, and delivers instant net profit margin reconciliation.', 'Completed'],
 ];
 const FLOOR_TILT = 58;
 
@@ -526,8 +541,8 @@ function Conveyor() {
           <Statement
             index="03"
             label="How it works"
-            title="A trip, from yard to delivered."
-            aside="Every status change is driven by the trip lifecycle, so the board is always the source of truth."
+            title="A corridor run, from booking to financial settlement."
+            aside="Every status change is driven by the trip lifecycle, ensuring the dispatch board and settlement ledger are always in sync."
             asideClassName="[@media(max-height:820px)]:hidden"
             inverted
           />
@@ -573,8 +588,8 @@ function StepList() {
         <Statement
           index="03"
           label="How it works"
-          title="A trip, from yard to delivered."
-          aside="Every status change is driven by the trip lifecycle, so the board is always the source of truth."
+          title="A corridor run, from booking to financial settlement."
+          aside="Every status change is driven by the trip lifecycle, ensuring the dispatch board and settlement ledger are always in sync."
           inverted
         />
         <ol className="mt-14 border-b border-paper/10">
@@ -604,11 +619,66 @@ function HowItWorks() {
 
 // Mirrors the allowedRoles on each <PrivateRoute> in App.js.
 const ROLES = [
-  { id: 'fleet_manager', label: 'Fleet manager', lead: 'Owns the board end to end.', does: ['Registers vehicles and drivers', 'Plans and dispatches trips', 'Opens and closes maintenance logs', 'Publishes spare capacity'], areas: ['Dashboard', 'Trips', 'Vehicles', 'Drivers', 'Maintenance', 'Fuel & expenses', 'Reports'] },
-  { id: 'driver', label: 'Driver', lead: 'Runs the trip and reports from the road.', does: ['Works trips in the trip planner', 'Goes live on GPS or drops checkpoints', 'Shares remaining capacity', 'Logs fuel and expenses'], areas: ['Dashboard', 'Trips', 'Fuel & expenses', 'Shared cargo'] },
-  { id: 'safety_officer', label: 'Safety officer', lead: 'Keeps people compliant.', does: ['Reviews driver records', 'Watches licence expiry', 'Tracks safety scores and suspensions'], areas: ['Dashboard', 'Drivers', 'Shared cargo'] },
-  { id: 'financial_analyst', label: 'Financial analyst', lead: 'Turns trips into margins.', does: ['Audits fuel and expense logs', 'Reads utilisation and fuel efficiency', 'Compares ROI per vehicle'], areas: ['Dashboard', 'Fuel & expenses', 'Reports', 'Shared cargo'] },
-  { id: 'shipper', label: 'Shipper', lead: 'Needs no account to follow cargo.', does: ['Opens the public tracking link', 'Watches position, speed and route trail', 'Sees whether the booking is shared space'], areas: ['Track cargo (public)'] },
+  {
+    id: 'fleet_manager',
+    label: 'Fleet Manager',
+    lead: 'Directs dispatch operations, corridor capacity, and vehicle readiness.',
+    does: [
+      'Onboards vehicles and assigns verified drivers',
+      'Dispatches trips and enforces compliance gates',
+      'Accepts and consolidates shared cargo requests',
+      'Oversees fleet health and maintenance logs',
+    ],
+    areas: ['Dashboard', 'Trips', 'Freight requests', 'Vehicles', 'Drivers', 'Maintenance', 'Fuel & expenses', 'Reports'],
+  },
+  {
+    id: 'driver',
+    label: 'Commercial Driver',
+    lead: 'Navigates the freight corridor and reports live from the cab.',
+    does: [
+      'Accepts and executes assigned trip waybills',
+      'Broadcasts live HTML5 GPS location coordinates',
+      'Logs fuel purchases with pump receipts and odometer',
+      'Delivers primary and consolidated shared cargo',
+    ],
+    areas: ['Dashboard', 'Trips', 'Fuel & expenses', 'Live Telemetry'],
+  },
+  {
+    id: 'safety_officer',
+    label: 'Safety Officer',
+    lead: 'Guarantees compliance standards and vehicle fitness.',
+    does: [
+      'Audits commercial driver licenses & expiries',
+      'Validates fitness certificates and road permits',
+      'Enforces vehicle preventative maintenance schedules',
+      'Monitors safety performance scores and logs',
+    ],
+    areas: ['Dashboard', 'Drivers', 'Vehicles', 'Maintenance'],
+  },
+  {
+    id: 'financial_analyst',
+    label: 'Financial Analyst',
+    lead: 'Audits freight reconciliations, fuel costs, and corridor ROI.',
+    does: [
+      'Audits completed trip financial settlements',
+      'Verifies 100% shared cargo net margin economics',
+      'Tracks fleet fuel efficiency (KM/L) and costs',
+      'Exports multi-sheet reports to Excel and PDF',
+    ],
+    areas: ['Dashboard', 'Fuel & expenses', 'Reports'],
+  },
+  {
+    id: 'shipper',
+    label: 'Freight Shipper',
+    lead: 'Books corridor freight and tracks shipments with zero login.',
+    does: [
+      'Books Individual or Corporate B2B freight with GST',
+      'Discovers open shared capacity along major corridors',
+      'Tracks live cargo movement on OpenStreetMap',
+      'Receives automated delivery waybills and proof of delivery',
+    ],
+    areas: ['Book freight', 'My bookings', 'Track cargo (Public)'],
+  },
 ];
 
 function RolePanel({ role }) {
@@ -618,18 +688,18 @@ function RolePanel({ role }) {
         <p className="hud text-muted">Role</p>
         <h3 className="display-lg mt-4 text-ink">{role.label}</h3>
         <p className={`${LEAD} mt-4 text-ink/65`}>{role.lead}</p>
-        <PillCta to={role.id === 'shipper' ? '/track' : '/register'} className="mt-8">
-          {role.id === 'shipper' ? 'Track a shipment' : 'Create an account'}
+        <PillCta to={role.id === 'shipper' ? '/book-freight' : '/register'} className="mt-8">
+          {role.id === 'shipper' ? 'Book freight cargo' : 'Create an account'}
         </PillCta>
       </div>
       <div className="md:col-span-4">
-        <p className="hud text-muted">Does</p>
+        <p className="hud text-muted">Core Responsibilities</p>
         <ul className="mt-4 divide-y divide-ink/10 border-y border-ink/10 text-[16px] text-ink">
           {role.does.map((d) => <li key={d} className="py-3">{d}</li>)}
         </ul>
       </div>
       <div className="md:col-span-3">
-        <p className="hud text-muted">Sees</p>
+        <p className="hud text-muted">Accessible Portal Areas</p>
         <ul className="mt-4 flex flex-wrap gap-1.5">
           {role.areas.map((a) => <li key={a} className="rounded-full border border-ink/15 px-3 py-1.5 font-mono text-[11px] text-ink">{a}</li>)}
         </ul>
@@ -645,9 +715,9 @@ function Roles() {
       <div className={WRAP}>
         <Statement
           index="04"
-          label="Who uses it"
+          label="Role-based access"
           title="Every role gets exactly the screens it needs."
-          aside="Access is enforced with JWT role checks on the API and route guards in the app."
+          aside="Access is strictly enforced with JWT claims on the API gateway and role-guarded routing in the client application."
         />
         <Reveal className="mt-[clamp(48px,6vw,96px)]">
           <div className="-mx-5 overflow-x-auto px-5 pb-1 sm:mx-0 sm:px-0">
@@ -670,13 +740,13 @@ function FinalCta() {
   return (
     <section className="section-y bg-signal text-ink">
       <div className={`${WRAP} grid gap-12 lg:grid-cols-12 lg:items-end`}>
-        <Reveal className="lg:col-span-9">
+        <Reveal className="lg:col-span-8">
           <p className="hud flex items-center gap-3 text-ink/60">
-            <span className="text-ink">05</span><span aria-hidden="true" className="h-px w-10 bg-ink/30" />Next stop
+            <span className="text-ink">05</span><span aria-hidden="true" className="h-px w-10 bg-ink/30" />Next step
           </p>
-          <h2 className="display-xl mt-6">Put your fleet<br />on the board.</h2>
+          <h2 className="display-xl mt-6">Put your fleet on the board.<br />Or book freight today.</h2>
         </Reveal>
-        <Reveal delay={0.1} className="flex items-end gap-6 lg:col-span-3 lg:flex-col lg:items-start">
+        <Reveal delay={0.1} className="flex items-end gap-6 lg:col-span-4 lg:flex-col lg:items-start">
           <Link
             to="/register"
             aria-label="Create an account"
@@ -685,10 +755,18 @@ function FinalCta() {
             <BsArrowRight aria-hidden="true" className="text-[clamp(28px,2.6vw,40px)] transition-transform duration-500 group-hover:-rotate-45" />
           </Link>
           <div>
-            <p className="text-[17px] font-semibold">Create an account</p>
-            <Link to="/login" className="hud mt-2 inline-block text-ink/70 underline decoration-ink/30 underline-offset-4 hover:text-ink focus-visible:outline-ink">
-              or sign in
-            </Link>
+            <p className="text-[17px] font-semibold">Join as Carrier or Shipper</p>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium">
+              <Link to="/login" className="hud text-ink/75 underline decoration-ink/30 underline-offset-4 hover:text-ink">
+                Sign in to fleet
+              </Link>
+              <Link to="/book-freight" className="hud text-ink/75 underline decoration-ink/30 underline-offset-4 hover:text-ink">
+                Book freight cargo
+              </Link>
+              <Link to="/track" className="hud text-ink/75 underline decoration-ink/30 underline-offset-4 hover:text-ink">
+                Public tracker
+              </Link>
+            </div>
           </div>
         </Reveal>
       </div>
@@ -699,9 +777,9 @@ function FinalCta() {
 function Footer() {
   const cols = [
     ['Product', ANCHORS.map((a) => [a.label, a.href, 'anchor'])],
-    ['App', [['Sign in', '/login'], ['Register', '/register'], ['Track cargo', '/track']]],
-    ['Project', [['GitHub repository', REPO_URL, 'external']]],
-    ['Legal', [['Privacy policy', '/privacy'], ['Terms of service', '/terms']]],
+    ['Shippers', [['Book freight', '/book-freight'], ['Track cargo', '/track'], ['My bookings', '/my-bookings']]],
+    ['Carriers', [['Set up fleet', '/register'], ['Operations portal', '/login'], ['Fleet directory', '/register']]],
+    ['Legal', [['Privacy policy', '/privacy'], ['Terms of service', '/terms'], ['GitHub repo', REPO_URL, 'external']]],
   ];
   const linkCls = 'text-paper/70 transition-colors hover:text-paper';
   return (
@@ -709,7 +787,9 @@ function Footer() {
       <div className={`${WRAP} grid gap-12 pb-10 pt-20 md:grid-cols-12`}>
         <div className="md:col-span-4">
           <Logo inverted />
-          <p className="mt-4 max-w-[32ch] text-[15px] leading-relaxed text-paper/55">Smart transport operations and freight logistics platform.</p>
+          <p className="mt-4 max-w-[32ch] text-[15px] leading-relaxed text-paper/55">
+            Smart transport operations and freight logistics platform. Unifying carriers and shippers with real-time GPS tracking, automated compliance, and 100% margin corridor load sharing.
+          </p>
         </div>
         {cols.map(([title, links]) => (
           <nav key={title} aria-label={title} className="md:col-span-2">
