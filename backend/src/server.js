@@ -151,6 +151,15 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('Database connection has been established successfully.');
 
+    // Auto-run schema migration for carriers, freight_bookings, and roles
+    try {
+      const migrateCarrierShipper = require('./scripts/migrateCarrierShipper');
+      await migrateCarrierShipper();
+      console.log('Carrier & Shipper database schema successfully synchronized.');
+    } catch (migErr) {
+      console.warn('Schema auto-migration notice:', migErr?.message || migErr);
+    }
+
     const [[{ ready }]] = await sequelize.query("SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'transitops_app') AS ready");
     enableRls(ready);
     if (!ready) console.warn('Row-level security is OFF: run `npm run db:migrate-auth` to enable it.');

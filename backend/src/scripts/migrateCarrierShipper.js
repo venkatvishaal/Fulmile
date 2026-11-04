@@ -116,11 +116,20 @@ async function migrate() {
     console.log('Associated legacy fleet data with default carrier.');
 
     console.log('--- Migration completed successfully! ---');
-    process.exit(0);
+    return true;
   } catch (err) {
-    console.error('Migration failed:', err);
-    process.exit(1);
+    console.error('Migration error:', err);
+    throw err;
   }
 }
 
-migrate();
+if (require.main === module) {
+  migrate()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+}
+
+module.exports = migrate;
