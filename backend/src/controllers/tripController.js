@@ -23,66 +23,48 @@ const tripController = {
   getAll: async (req, res) => {
     try {
       const { status } = req.query;
-      const carrierId = req.user?.carrierId || '00000000-0000-0000-0000-000000000000';
-      const where = req.user?.role === 'admin' && !req.user?.carrierId ? {} : { carrier_id: carrierId };
+      const carrierId = req.user?.carrierId;
+      const where = req.user?.role === 'admin' && !carrierId
+        ? {}
+        : (carrierId ? { carrier_id: carrierId } : {});
       if (status) where.status = status;
 
-      // Single Dispatch Rule: Reconcile active running corridor trips with any attached shared cargos
+      // NOTE: Reconciliation logic removed from GET handler.
+      // Shared cargo attachment is now handled exclusively by the accept/merge actions
+      // in freightBookingController and sharedBookingController at write time.
+
+      let trips = [];
       try {
-        const dispatchedTrips = await Trip.findAll({
-          where: { ...where, status: 'Dispatched' }
+        trips = await Trip.findAll({
+          where,
+          include: [
+            { model: Vehicle, as: 'vehicle', attributes: ['id', 'registration_number', 'model_name', 'max_load_capacity_kg', 'status'], required: false },
+            { model: Driver, as: 'driver', attributes: ['id', 'name', 'license_number', 'status'], required: false },
+            {
+              model: FreightBooking,
+              as: 'freight_bookings',
+              attributes: ['id', 'shipment_id', 'pickup_address', 'delivery_address', 'cargo_weight', 'cargo_type', 'status', 'price_quote', 'is_shared'],
+              required: false
+            }
+          ],
+          order: [['created_at', 'DESC']]
         });
-
-        for (const dt of dispatchedTrips) {
-          // Find in-transit shared bookings for this carrier that need corridor attachment
-          const orphanBookings = await FreightBooking.findAll({
-            where: {
-              carrier_id: dt.carrier_id,
-              status: 'In Transit',
-              [Op.or]: [
-                { trip_id: { [Op.ne]: dt.id } },
-                { trip_id: null }
-              ]
+      } catch (findErr) {
+        trips = await Trip.findAll({
+          where,
+          include: [
+            { model: Vehicle, as: 'vehicle', attributes: ['id', 'registration_number', 'model_name', 'max_load_capacity_kg', 'status'], required: false },
+            { model: Driver, as: 'driver', attributes: ['id', 'name', 'license_number', 'status'], required: false },
+            {
+              model: FreightBooking,
+              as: 'freight_bookings',
+              attributes: ['id', 'shipment_id', 'pickup_address', 'delivery_address', 'cargo_weight', 'cargo_type', 'status', 'price_quote'],
+              required: false
             }
-          });
-
-          for (const ob of orphanBookings) {
-            if (ob.trip_id) {
-              const oldTrip = await Trip.findByPk(ob.trip_id);
-              if (oldTrip && oldTrip.vehicle_id === dt.vehicle_id && oldTrip.id !== dt.id) {
-                await ob.update({ trip_id: dt.id });
-                await oldTrip.destroy();
-              }
-            } else {
-              await ob.update({ trip_id: dt.id });
-            }
-          }
-
-          // Keep running trip cargo weight in sync with sum of all attached shipments
-          const totalWeight = await FreightBooking.sum('cargo_weight', {
-            where: { trip_id: dt.id }
-          });
-          if (totalWeight && parseFloat(totalWeight) > 0 && parseFloat(dt.cargo_weight) !== parseFloat(totalWeight)) {
-            await dt.update({ cargo_weight: parseFloat(totalWeight) });
-          }
-        }
-      } catch (reconcileErr) {
-        console.warn('Corridor reconcile warning:', reconcileErr);
+          ],
+          order: [['created_at', 'DESC']]
+        });
       }
-
-      const trips = await Trip.findAll({
-        where,
-        include: [
-          { model: Vehicle, as: 'vehicle', attributes: ['id', 'registration_number', 'model_name', 'max_load_capacity_kg', 'status'] },
-          { model: Driver, as: 'driver', attributes: ['id', 'name', 'license_number', 'status'] },
-          {
-            model: FreightBooking,
-            as: 'freight_bookings',
-            attributes: ['id', 'shipment_id', 'pickup_address', 'delivery_address', 'cargo_weight', 'cargo_type', 'status', 'price_quote', 'is_shared']
-          }
-        ],
-        order: [['created_at', 'DESC']]
-      });
       res.json({ success: true, data: trips });
     } catch (error) {
       console.error('Get trips error:', error);

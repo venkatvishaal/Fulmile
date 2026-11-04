@@ -335,6 +335,7 @@ const freightBookingController = {
           trip_id: trip.id,
           carrier_id: req.user.carrierId || trip.carrier_id,
           price_quote: quoteToSet,
+          is_shared: true,
           status: trip.status === 'Dispatched' ? 'In Transit' : 'Accepted'
         }, { transaction: t });
 

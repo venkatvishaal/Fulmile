@@ -80,6 +80,12 @@ async function migrate() {
     `);
     console.log('freight_bookings table verified.');
 
+    // 5b. Add is_shared column to freight_bookings if missing
+    await sequelize.query(`
+      ALTER TABLE freight_bookings ADD COLUMN IF NOT EXISTS is_shared BOOLEAN DEFAULT FALSE;
+    `);
+    console.log('freight_bookings.is_shared column verified.');
+
     // 6. Ensure 'shipper' role exists and update constraint on roles
     await sequelize.query(`
       ALTER TABLE roles DROP CONSTRAINT IF EXISTS chk_roles_name;

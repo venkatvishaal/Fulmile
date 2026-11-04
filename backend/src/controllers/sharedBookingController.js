@@ -292,6 +292,7 @@ const sharedBookingController = {
           estimated_distance_km: parseFloat(planned_distance),
           carrier_id: vehicle.carrier_id,
           trip_id: assignedTrip.id,
+          is_shared: true,
           price_quote: price_quote || (parseFloat(route.price_per_kg) * reqWeight),
           status: activeTrip ? 'In Transit' : 'Accepted'
         }, { transaction });

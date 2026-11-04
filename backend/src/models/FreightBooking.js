@@ -82,6 +82,11 @@ const FreightBooking = sequelize.define('FreightBooking', {
   notes: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+  is_shared: {
+    type: DataTypes.BOOLEAN,
+    allowNull: true,
+    defaultValue: false
   }
 }, {
   tableName: 'freight_bookings',
