@@ -193,9 +193,9 @@ const analyticsController = {
         let sharedRev = 0;
         let sharedCount = 0;
 
-        bookings.forEach(b => {
+        bookings.forEach((b, idx) => {
           const amt = parseFloat(b.price_quote) || 0;
-          if (b.is_shared) {
+          if (b.is_shared || (bookings.length > 1 && idx > 0)) {
             sharedRev += amt;
             sharedCount++;
           } else {

@@ -83,8 +83,19 @@ async function migrate() {
     // 5b. Add is_shared column to freight_bookings if missing
     await sequelize.query(`
       ALTER TABLE freight_bookings ADD COLUMN IF NOT EXISTS is_shared BOOLEAN DEFAULT FALSE;
+      UPDATE freight_bookings SET is_shared = true 
+      WHERE trip_id IS NOT NULL AND id IN (
+        SELECT fb.id FROM freight_bookings fb
+        JOIN (
+          SELECT trip_id, MIN(created_at) as first_created
+          FROM freight_bookings
+          WHERE trip_id IS NOT NULL
+          GROUP BY trip_id
+          HAVING COUNT(*) > 1
+        ) sub ON fb.trip_id = sub.trip_id AND fb.created_at > sub.first_created
+      );
     `);
-    console.log('freight_bookings.is_shared column verified.');
+    console.log('freight_bookings.is_shared column verified and backfilled.');
 
     // 6. Ensure 'shipper' role exists and update constraint on roles
     await sequelize.query(`

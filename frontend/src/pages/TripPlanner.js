@@ -667,10 +667,13 @@ export default function TripPlanner() {
                     const bookings = t.freight_bookings || [];
                     let primaryRev = 0;
                     let sharedRev = 0;
-                    bookings.forEach(b => {
+                    bookings.forEach((b, idx) => {
                       const amt = parseFloat(b.price_quote) || 0;
-                      if (b.is_shared) sharedRev += amt;
-                      else primaryRev += amt;
+                      if (b.is_shared || (bookings.length > 1 && idx > 0)) {
+                        sharedRev += amt;
+                      } else {
+                        primaryRev += amt;
+                      }
                     });
                     if (primaryRev === 0 && parseFloat(t.price_quote) > 0) {
                       primaryRev = parseFloat(t.price_quote);
