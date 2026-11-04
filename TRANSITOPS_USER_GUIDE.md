@@ -1,7 +1,7 @@
 # TransitOps — Full User Manual
 
 > **Version 1.0** · Smart Fleet Operations Management Platform  
-> **Built for:** Odoo Hackathon · **Stack:** React.js · Node.js / Express · PostgreSQL · Socket.io
+> **Platform Stack:** React.js · Node.js / Express · PostgreSQL · Socket.io
 
 ---
 
@@ -1285,8 +1285,8 @@ Weekly:
 ---
 
 > **TransitOps v1.0** — Smart Fleet Operations Management Platform  
-> Built for the **Odoo Hackathon** · Tech Stack: React.js · Node.js/Express · PostgreSQL · Socket.io  
-> For technical issues, refer to [README.md](file:///c:/TSVV/Odoo_hackathon/TransitOps/README.md) or contact your system administrator.
+> Enterprise Logistics · Tech Stack: React.js · Node.js/Express · PostgreSQL · Socket.io  
+> For technical issues, refer to [README.md](./README.md) or contact your system administrator.
 
 ---
 

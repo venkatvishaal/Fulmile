@@ -28,7 +28,7 @@ function useMedia(query) {
   return matches;
 }
 
-const REPO_URL = 'https://github.com/venkatvishaal/Odoo-hackathon';
+const REPO_URL = 'https://github.com/venkatvishaal/TransitOps';
 const WRAP = 'mx-auto w-full max-w-wide px-5 sm:px-8 lg:px-12';
 const TILE = 'relative h-full overflow-hidden rounded-[10px]';
 const LEAD = 'text-[17px] leading-[1.55]';
@@ -709,7 +709,7 @@ function Footer() {
       <div className={`${WRAP} grid gap-12 pb-10 pt-20 md:grid-cols-12`}>
         <div className="md:col-span-4">
           <Logo inverted />
-          <p className="mt-4 max-w-[32ch] text-[15px] leading-relaxed text-paper/55">Smart transport operations platform. Built for the Odoo Hackathon.</p>
+          <p className="mt-4 max-w-[32ch] text-[15px] leading-relaxed text-paper/55">Smart transport operations and freight logistics platform.</p>
         </div>
         {cols.map(([title, links]) => (
           <nav key={title} aria-label={title} className="md:col-span-2">

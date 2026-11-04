@@ -37,7 +37,7 @@ Browser ──HTTPS──▶ Vercel (frontend/build)
 3. Neon → **SQL Editor** → paste the whole of [`database/schema.sql`](database/schema.sql) → **Run**.
    This creates all 10 tables, indexes and the `vehicle_operational_costs` view used by Reports.
 4. Seed data — choose one:
-   - **Demo / hackathon (roles + demo users + sample fleet):** from your machine
+   - **Demo / staging (roles + demo users + sample fleet):** from your machine
      ```bash
      cd backend
      npm install

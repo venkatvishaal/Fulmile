@@ -1,12 +1,12 @@
 # TransitOps — Smart Transport Operations Platform
 
-TransitOps is a centralized transport operations platform designed to optimize fleet utilization, automate logistics dispatch, enforce compliance gates, track maintenance lifecycles, and monitor operational finances. 
+TransitOps is an enterprise transport operations and freight platform designed to optimize fleet utilization, automate logistics dispatch, enforce compliance gates, track maintenance lifecycles, and monitor operational finances. 
 
-Built specifically for the **Odoo Hackathon**, this project solves major logistics challenges by introducing real-time freight tracking, shared capacity utilization, and automated fleet management.
+This platform solves major logistics challenges by introducing real-time freight tracking, shared capacity utilization, automated fleet management, and instant financial settlement.
 
 ---
 
-## 🎯 What This Solves (Hackathon Objectives)
+## 🎯 Key Industry Challenges Solved
 
 1. **Real-Time Freight Visibility (The "Where is my cargo?" problem)**
    * **Solution:** We built a live tracking Shipper Portal using `Socket.io` and `Leaflet` maps. Drivers can broadcast their live GPS location, and customers can watch their cargo move on a map in real-time with zero-latency updates.
