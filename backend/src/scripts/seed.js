@@ -1,5 +1,5 @@
 const sequelize = require('../config/database');
-const { Role, User, Vehicle, Driver, Trip, MaintenanceLog, FuelLog, Expense } = require('../models');
+const { Role, User, Vehicle, Driver, Trip, MaintenanceLog, FuelLog, Expense, Carrier } = require('../models');
 
 const seedDatabase = async () => {
   const t = await sequelize.transaction();
@@ -9,7 +9,8 @@ const seedDatabase = async () => {
       { name: 'fleet_manager', description: 'Manages fleet assets, maintenance, and operations' },
       { name: 'driver', description: 'Creates and executes trip dispatches' },
       { name: 'safety_officer', description: 'Monitors driver compliance and safety scores' },
-      { name: 'financial_analyst', description: 'Tracks costs, fuel economy, and ROI' }
+      { name: 'financial_analyst', description: 'Tracks costs, fuel economy, and ROI' },
+      { name: 'shipper', description: 'Books freight shipments and tracks cargo deliveries' }
     ];
     const roleRecords = {};
     for (const role of roles) {
@@ -36,6 +37,29 @@ const seedDatabase = async () => {
         transaction: t
       });
     }
+
+    // Create default carrier for existing seed data
+    console.log('Seeding default carrier company...');
+    const [defaultCarrier] = await Carrier.findOrCreate({
+      where: { company_name: 'TransitOps Logistics Corp' },
+      defaults: {
+        company_name: 'TransitOps Logistics Corp',
+        gst_number: '29AADCT1234F1ZH',
+        address: '123 Fleet Street',
+        city: 'Bangalore',
+        state: 'Karnataka',
+        pincode: '560001',
+        contact_phone: '9876500000',
+        contact_email: 'ops@transitops.com'
+      },
+      transaction: t
+    });
+
+    // Link seed users to the default carrier
+    await User.update(
+      { carrier_id: defaultCarrier.id },
+      { where: { carrier_id: null, email: { [require('sequelize').Op.ne]: null } }, transaction: t }
+    );
 
     console.log('Seeding vehicles...');
     const vehicles = [

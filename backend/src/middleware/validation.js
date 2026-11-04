@@ -26,10 +26,11 @@ const validators = {
       .isLength({ min: 2, max: 100 }).withMessage('Name must be 2-100 characters'),
     body('email').isEmail().withMessage('Valid email is required'),
     newPassword(),
-    body('role').notEmpty().withMessage('Role is required')
-      .isIn(['fleet_manager', 'driver', 'safety_officer', 'financial_analyst'])
+    body('phone').optional().matches(/^[0-9]{10,15}$/).withMessage('Invalid phone number'),
+    body('accountType').optional().isIn(['carrier', 'shipper']).withMessage('Invalid account type'),
+    body('role').optional().isIn(['fleet_manager', 'driver', 'safety_officer', 'financial_analyst', 'shipper'])
       .withMessage('Invalid role'),
-    body('phone').optional().matches(/^[0-9]{10,15}$/).withMessage('Invalid phone number')
+    body('shipperType').optional().isIn(['individual', 'company']).withMessage('Invalid shipper type')
   ],
 
   login: [
@@ -64,7 +65,6 @@ const validators = {
     body('license_expiry_date').optional().isISO8601().withMessage('Valid date required (YYYY-MM-DD)'),
     body('contact_number').optional().trim().notEmpty().withMessage('Contact number cannot be empty'),
     body('safety_score').optional().isFloat({ min: 0, max: 10 }).withMessage('Safety score must be 0-10'),
-    // "On Trip" is only ever set by dispatching a trip.
     body('status').optional().isIn(['Available', 'Off Duty', 'Suspended'])
       .withMessage('Status must be Available, Off Duty or Suspended')
   ],

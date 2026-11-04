@@ -4,7 +4,7 @@ import { fetchDashboard } from '../redux/slices/analyticsSlice';
 import analyticsService from '../services/analyticsService';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { FaFileCsv, FaChartLine, FaGasPump, FaMoneyBillWave, FaCoins, FaTruck } from 'react-icons/fa';
+import { FaFileCsv, FaChartLine, FaGasPump, FaMoneyBillWave, FaCoins, FaTruck, FaRoute, FaArrowRight } from 'react-icons/fa';
 import { BsDownload, BsFileEarmarkExcel, BsFileEarmarkPdf } from 'react-icons/bs';
 import { toast } from 'react-toastify';
 import Menu from '../components/ui/Menu';
@@ -15,14 +15,59 @@ const assetRatio = (item) => (num(item.acquisition_cost) > 0 ? (num(item.total_o
 
 function reportTables(data) {
   const status = (obj, keys) => keys.map((k) => [k, obj?.[k] ?? 0]);
+  const finSummary = data?.financialSummary || {};
   const summary = [
-    ['Fleet utilisation', `${data.utilization ?? 0}%`],
-    ['Open maintenance logs', data.openMaintenance ?? 0],
-    ...status(data.vehicles, ['Available', 'On Trip', 'In Shop', 'Retired']).map(([k, v]) => [`Vehicles · ${k}`, v]),
-    ...status(data.drivers, ['Available', 'On Trip', 'Off Duty', 'Suspended']).map(([k, v]) => [`Drivers · ${k}`, v]),
-    ...status(data.trips, ['Draft', 'Dispatched', 'Completed', 'Cancelled']).map(([k, v]) => [`Trips · ${k}`, v]),
+    ['Total Completed Trips', finSummary.totalCompletedTrips ?? 0],
+    ['Completed Gross Revenue', `₹${num(finSummary.totalGrossRevenue).toLocaleString()}`],
+    ['Primary Freight Revenue', `₹${num(finSummary.totalFreightRevenue).toLocaleString()}`],
+    ['Shared Cargo Pure Profit (100% Margin)', `₹${num(data?.sharedCargoAnalytics?.totalPureProfit).toLocaleString()}`],
+    ['Total Trip Fuel Expense', `₹${num(finSummary.totalFuelCost).toLocaleString()}`],
+    ['Net Profit from Completed Trips', `₹${num(finSummary.totalNetProfit).toLocaleString()}`],
+    ['Overall Operating Margin', `${finSummary.overallMarginPct ?? 0}%`],
+    ['Shared Cargo Orders (Fulfilled/Active)', data?.sharedCargoAnalytics?.sharedOrdersCount ?? 0],
+    ['Fleet utilisation', `${data?.utilization ?? 0}%`],
+    ['Open maintenance logs', data?.openMaintenance ?? 0],
+    ...status(data?.vehicles, ['Available', 'On Trip', 'In Shop', 'Retired']).map(([k, v]) => [`Vehicles · ${k}`, v]),
+    ...status(data?.drivers, ['Available', 'On Trip', 'Off Duty', 'Suspended']).map(([k, v]) => [`Drivers · ${k}`, v]),
+    ...status(data?.trips, ['Draft', 'Dispatched', 'Completed', 'Cancelled']).map(([k, v]) => [`Trips · ${k}`, v]),
   ];
-  const costs = data.operationalCosts.map((c) => ({
+
+  const completedTripsList = (data?.completedTripsFinancials || []).map((t) => ({
+    id: t.tracking_id,
+    route: `${t.source} → ${t.destination}`,
+    vehicle: t.vehicle_registration,
+    driver: t.driver_name,
+    distance: num(t.planned_distance),
+    fuel_liters: num(t.fuel_consumed_liters),
+    primaryRev: num(t.primary_revenue),
+    sharedRev: num(t.shared_cargo_revenue),
+    totalRev: num(t.total_revenue),
+    fuelCost: num(t.fuel_cost),
+    netProfit: num(t.net_profit),
+    margin: `${num(t.profit_margin_pct)}%`,
+    date: t.completed_at ? new Date(t.completed_at).toLocaleDateString('en-IN') : '—'
+  }));
+
+  const totRev = completedTripsList.reduce((a, r) => a + r.totalRev, 0);
+  const totProfit = completedTripsList.reduce((a, r) => a + r.netProfit, 0);
+
+  const tripTotals = {
+    id: `Total (${completedTripsList.length} trips)`,
+    route: '',
+    vehicle: '',
+    driver: '',
+    distance: completedTripsList.reduce((a, r) => a + r.distance, 0),
+    fuel_liters: completedTripsList.reduce((a, r) => a + r.fuel_liters, 0),
+    primaryRev: completedTripsList.reduce((a, r) => a + r.primaryRev, 0),
+    sharedRev: completedTripsList.reduce((a, r) => a + r.sharedRev, 0),
+    totalRev: totRev,
+    fuelCost: completedTripsList.reduce((a, r) => a + r.fuelCost, 0),
+    netProfit: totProfit,
+    margin: totRev > 0 ? `${((totProfit / totRev) * 100).toFixed(1)}%` : '0%',
+    date: ''
+  };
+
+  const costs = (data?.operationalCosts || []).map((c) => ({
     vehicle: c.registration_number,
     model: c.model_name,
     acquisition: num(c.acquisition_cost),
@@ -30,17 +75,19 @@ function reportTables(data) {
     maintenance: num(c.total_maintenance_cost),
     expenses: num(c.total_expense_cost),
     total: num(c.total_operational_cost),
+    sharedProfit: num(c.shared_profit),
+    netProfit: num(c.net_profit),
     ratio: Number(assetRatio(c).toFixed(1)),
   }));
-  const efficiency = data.fuelEfficiency.map((e) => ({
+  const efficiency = (data?.fuelEfficiency || []).map((e) => ({
     vehicle: e.vehicle?.registration_number || '—',
     distance: num(e.total_distance),
     fuel: num(e.total_fuel),
     kmpl: num(e.efficiency),
   }));
   const sum = (key) => costs.reduce((a, r) => a + r[key], 0);
-  const costTotals = { vehicle: `Total (${costs.length})`, acquisition: sum('acquisition'), fuel: sum('fuel'), maintenance: sum('maintenance'), expenses: sum('expenses'), total: sum('total') };
-  return { summary, costs, efficiency, costTotals };
+  const costTotals = { vehicle: `Total (${costs.length})`, acquisition: sum('acquisition'), fuel: sum('fuel'), maintenance: sum('maintenance'), expenses: sum('expenses'), total: sum('total'), sharedProfit: sum('sharedProfit'), netProfit: sum('netProfit') };
+  return { summary, costs, efficiency, costTotals, completedTripsList, tripTotals };
 }
 
 export default function ReportsPage() {
@@ -63,7 +110,7 @@ export default function ReportsPage() {
   };
 
   const runExport = async (format) => {
-    const { summary, costs, efficiency, costTotals } = reportTables(data);
+    const { summary, costs, efficiency, costTotals, completedTripsList, tripTotals } = reportTables(data);
     const name = `transitops_fleet_report_${fileDate()}`;
     try {
       if (format === 'xlsx') {
@@ -77,12 +124,33 @@ export default function ReportsPage() {
               rows: summary.map(([k, v]) => ({ k, v })),
             },
             {
+              name: 'Completed Trips Financials', title: 'Completed Trips Financial Performance & Settlement',
+              columns: [
+                { header: 'Trip ID', key: 'id', width: 16 },
+                { header: 'Route', key: 'route', width: 26 },
+                { header: 'Completion Date', key: 'date', width: 16 },
+                { header: 'Vehicle', key: 'vehicle', width: 18 },
+                { header: 'Driver', key: 'driver', width: 16 },
+                { header: 'Distance (km)', key: 'distance', width: 16, numFmt: '#,##0.0' },
+                { header: 'Fuel (L)', key: 'fuel_liters', width: 12, numFmt: '0.00' },
+                { header: 'Primary Freight Quote', key: 'primaryRev', width: 20, numFmt: money },
+                { header: 'Shared Cargo Pure Profit', key: 'sharedRev', width: 22, numFmt: money },
+                { header: 'Gross Revenue', key: 'totalRev', width: 18, numFmt: money },
+                { header: 'Fuel Expense', key: 'fuelCost', width: 16, numFmt: money },
+                { header: 'Net Profit', key: 'netProfit', width: 18, numFmt: money },
+                { header: 'Margin %', key: 'margin', width: 14 },
+              ],
+              rows: completedTripsList, totals: tripTotals,
+            },
+            {
               name: 'Operational Costs', title: 'Operational Costs by Vehicle',
               columns: [
                 { header: 'Vehicle', key: 'vehicle', width: 18 }, { header: 'Model', key: 'model', width: 22 },
                 { header: 'Fuel Cost', key: 'fuel', width: 14, numFmt: money }, { header: 'Maintenance Cost', key: 'maintenance', width: 18, numFmt: money },
                 { header: 'Tolls & Other', key: 'expenses', width: 16, numFmt: money },
                 { header: 'Total Operational Cost', key: 'total', width: 22, numFmt: money },
+                { header: 'Shared Cargo Pure Profit', key: 'sharedProfit', width: 24, numFmt: money },
+                { header: 'Net Margin', key: 'netProfit', width: 20, numFmt: money },
               ],
               rows: costs, totals: costTotals,
             },
@@ -109,14 +177,20 @@ export default function ReportsPage() {
         await exportPdf({
           fileName: `${name}.pdf`,
           title: 'Fleet Analytics & Reports',
-          subtitle: 'Operational costs, fuel efficiency and asset ROI',
+          subtitle: 'Completed trip financials, operating costs, fuel efficiency and asset ROI',
           summary: summary.map(([k, v]) => [k, String(v)]),
           sections: [
             {
+              heading: 'Completed Trips Financial Settlement',
+              columns: ['Trip ID', 'Route', 'Vehicle', 'Primary Rev', 'Shared Profit', 'Total Rev', 'Fuel Cost', 'Net Profit', 'Margin'],
+              rows: completedTripsList.map((t) => [t.id, t.route, t.vehicle, pdfMoney(t.primaryRev), pdfMoney(t.sharedRev), pdfMoney(t.totalRev), pdfMoney(t.fuelCost), pdfMoney(t.netProfit), t.margin]),
+              totals: [tripTotals.id, '', '', pdfMoney(tripTotals.primaryRev), pdfMoney(tripTotals.sharedRev), pdfMoney(tripTotals.totalRev), pdfMoney(tripTotals.fuelCost), pdfMoney(tripTotals.netProfit), tripTotals.margin],
+            },
+            {
               heading: 'Operational Costs by Vehicle',
-              columns: ['Vehicle', 'Model', 'Fuel Cost', 'Maintenance Cost', 'Tolls & Other', 'Total Operational Cost'],
-              rows: costs.map((r) => [r.vehicle, r.model, pdfMoney(r.fuel), pdfMoney(r.maintenance), pdfMoney(r.expenses), pdfMoney(r.total)]),
-              totals: [costTotals.vehicle, '', pdfMoney(costTotals.fuel), pdfMoney(costTotals.maintenance), pdfMoney(costTotals.expenses), pdfMoney(costTotals.total)],
+              columns: ['Vehicle', 'Model', 'Fuel Cost', 'Maintenance Cost', 'Tolls & Other', 'Total Cost', 'Shared Profit', 'Net Margin'],
+              rows: costs.map((r) => [r.vehicle, r.model, pdfMoney(r.fuel), pdfMoney(r.maintenance), pdfMoney(r.expenses), pdfMoney(r.total), pdfMoney(r.sharedProfit), pdfMoney(r.netProfit)]),
+              totals: [costTotals.vehicle, '', pdfMoney(costTotals.fuel), pdfMoney(costTotals.maintenance), pdfMoney(costTotals.expenses), pdfMoney(costTotals.total), pdfMoney(costTotals.sharedProfit), pdfMoney(costTotals.netProfit)],
             },
             {
               heading: 'Fuel Efficiency (completed trips)',
@@ -187,6 +261,77 @@ export default function ReportsPage() {
               ]}
             />
           )}
+        </div>
+
+        {/* Executive Financial Highlights & Profit Settlements */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+            <div className="flex items-center justify-between pb-1">
+              <span className="text-[11px] uppercase font-extrabold text-gray-400 tracking-wider">
+                Delivered Gross Revenue
+              </span>
+              <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                {data.financialSummary?.totalCompletedTrips || 0} Trips
+              </span>
+            </div>
+            <div className="text-2xl font-black text-gray-800 mt-2 font-mono">
+              ₹{(data.financialSummary?.totalGrossRevenue || 0).toLocaleString()}
+            </div>
+            <p className="text-[11px] text-gray-500 mt-1.5">
+              Primary: ₹{(data.financialSummary?.totalFreightRevenue || 0).toLocaleString()} · Shared: ₹{(data.financialSummary?.totalSharedCargoRevenue || 0).toLocaleString()}
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-2xl shadow-md p-5">
+            <div className="flex items-center justify-between pb-1">
+              <span className="text-[11px] uppercase font-extrabold tracking-wider opacity-90">
+                Shared Cargo Pure Profit
+              </span>
+              <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                100% Margin
+              </span>
+            </div>
+            <div className="text-2xl font-black mt-2 font-mono">
+              ₹{(data.sharedCargoAnalytics?.totalPureProfit || 0).toLocaleString()}
+            </div>
+            <p className="text-[11px] opacity-85 mt-1.5">
+              Zero additional fuel/driver cost on running transit corridors.
+            </p>
+          </div>
+
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+            <div className="flex items-center justify-between pb-1">
+              <span className="text-[11px] uppercase font-extrabold text-gray-400 tracking-wider">
+                Trip Fuel Expense
+              </span>
+              <span className="bg-amber-50 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                Settled Logs
+              </span>
+            </div>
+            <div className="text-2xl font-black text-gray-800 mt-2 font-mono">
+              ₹{(data.financialSummary?.totalFuelCost || 0).toLocaleString()}
+            </div>
+            <p className="text-[11px] text-gray-500 mt-1.5">
+              Actual fuel consumed across completed corridor trips.
+            </p>
+          </div>
+
+          <div className="bg-white border border-emerald-100 rounded-2xl shadow-sm p-5 bg-gradient-to-b from-white to-emerald-50/30">
+            <div className="flex items-center justify-between pb-1">
+              <span className="text-[11px] uppercase font-extrabold text-emerald-800 tracking-wider">
+                Net Operating Profit
+              </span>
+              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
+                {data.financialSummary?.overallMarginPct || 0}% Margin
+              </span>
+            </div>
+            <div className="text-2xl font-black text-emerald-700 mt-2 font-mono">
+              +₹{(data.financialSummary?.totalNetProfit || 0).toLocaleString()}
+            </div>
+            <p className="text-[11px] text-emerald-600 font-medium mt-1.5">
+              Gross revenue minus fuel & operational running costs.
+            </p>
+          </div>
         </div>
 
         {/* First Row of Charts */}
@@ -271,6 +416,149 @@ export default function ReportsPage() {
           )}
         </div>
 
+        {/* Completed Trips Financial Breakdown & Settlement Ledger */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-8 overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
+            <div>
+              <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                <FaRoute className="text-blue-600" /> Completed Trips Financial Settlement & Ledger
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">
+                Audited trip revenue, 100% margin shared cargo profit, fuel expenses, and net profit per completed dispatch
+              </p>
+            </div>
+            {data.completedTripsFinancials?.length > 0 && (
+              <span className="text-xs font-mono font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-200">
+                {data.completedTripsFinancials.length} Settled Deliveries
+              </span>
+            )}
+          </div>
+
+          {!data.completedTripsFinancials || data.completedTripsFinancials.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+              <FaRoute className="mx-auto text-3xl text-gray-300 mb-2" />
+              <p className="text-gray-500 font-semibold text-sm">No completed trips settled yet</p>
+              <p className="text-gray-400 text-xs mt-1 max-w-sm mx-auto">
+                Once a dispatch is marked Completed by the driver or fleet manager, its complete financial ledger (freight quote, shared cargo gains, fuel logs, and net margin) will appear here instantly.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead>
+                  <tr className="border-b border-gray-100 text-gray-400 text-xs font-bold uppercase tracking-wider">
+                    <th className="pb-3">Trip ID & Route</th>
+                    <th className="pb-3">Vehicle & Driver</th>
+                    <th className="pb-3">Distance & Fuel</th>
+                    <th className="pb-3">Primary Freight</th>
+                    <th className="pb-3 text-emerald-700">Shared Cargo Profit</th>
+                    <th className="pb-3">Gross Revenue</th>
+                    <th className="pb-3 text-red-600">Fuel Cost</th>
+                    <th className="pb-3 text-emerald-700">Net Profit & Margin</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {data.completedTripsFinancials.map((trip) => {
+                    const isPositive = trip.net_profit >= 0;
+                    return (
+                      <tr key={trip.id} className="hover:bg-gray-50 transition">
+                        <td className="py-3.5">
+                          <span className="font-mono font-bold text-xs bg-gray-100 text-gray-800 px-2 py-0.5 rounded">
+                            {trip.tracking_id}
+                          </span>
+                          <div className="font-bold text-gray-800 text-xs mt-1">
+                            {trip.source} <FaArrowRight className="inline text-[9px] text-gray-400 mx-1" /> {trip.destination}
+                          </div>
+                          {trip.completed_at && (
+                            <div className="text-[10px] text-gray-400 mt-0.5">
+                              {new Date(trip.completed_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3.5">
+                          <span className="font-semibold text-gray-800 text-xs block">
+                            {trip.vehicle_registration}
+                          </span>
+                          <span className="text-[11px] text-gray-500">
+                            Driver: {trip.driver_name}
+                          </span>
+                        </td>
+                        <td className="py-3.5 font-mono text-xs">
+                          <span className="text-gray-700 block font-semibold">
+                            {trip.planned_distance.toLocaleString()} km
+                          </span>
+                          <span className="text-gray-400 text-[11px]">
+                            ⛽ {trip.fuel_consumed_liters.toLocaleString()} L
+                          </span>
+                        </td>
+                        <td className="py-3.5 font-mono font-semibold text-gray-700">
+                          ₹{trip.primary_revenue.toLocaleString()}
+                        </td>
+                        <td className="py-3.5 font-mono">
+                          {trip.shared_cargo_revenue > 0 ? (
+                            <div>
+                              <span className="text-emerald-700 font-extrabold block">
+                                +₹{trip.shared_cargo_revenue.toLocaleString()}
+                              </span>
+                              <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-sans font-bold border border-emerald-200">
+                                {trip.shared_cargo_count} Shared · 100% Margin
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">—</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 font-mono font-extrabold text-gray-900">
+                          ₹{trip.total_revenue.toLocaleString()}
+                        </td>
+                        <td className="py-3.5 font-mono text-xs text-red-600 font-semibold">
+                          -₹{trip.fuel_cost.toLocaleString()}
+                        </td>
+                        <td className="py-3.5 font-mono">
+                          <div className={`font-black text-sm ${isPositive ? 'text-emerald-700' : 'text-red-600'}`}>
+                            {isPositive ? '+' : ''}₹{trip.net_profit.toLocaleString()}
+                          </div>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                            isPositive ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {trip.profit_margin_pct}% Margin
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                {data.completedTripsFinancials.length > 0 && (
+                  <tfoot>
+                    <tr className="border-t-2 border-gray-200 bg-gray-50 font-bold text-xs text-gray-800 font-mono">
+                      <td className="py-3 px-2">Total ({data.completedTripsFinancials.length} Trips)</td>
+                      <td className="py-3 px-2">—</td>
+                      <td className="py-3 px-2">
+                        {data.completedTripsFinancials.reduce((sum, t) => sum + t.planned_distance, 0).toLocaleString()} km
+                      </td>
+                      <td className="py-3 px-2">
+                        ₹{(data.financialSummary?.totalFreightRevenue || 0).toLocaleString()}
+                      </td>
+                      <td className="py-3 px-2 text-emerald-700">
+                        +₹{(data.financialSummary?.totalSharedCargoRevenue || 0).toLocaleString()}
+                      </td>
+                      <td className="py-3 px-2 text-gray-900">
+                        ₹{(data.financialSummary?.totalGrossRevenue || 0).toLocaleString()}
+                      </td>
+                      <td className="py-3 px-2 text-red-600">
+                        -₹{(data.financialSummary?.totalFuelCost || 0).toLocaleString()}
+                      </td>
+                      <td className="py-3 px-2 text-emerald-700">
+                        +₹{(data.financialSummary?.totalNetProfit || 0).toLocaleString()} ({data.financialSummary?.overallMarginPct || 0}%)
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          )}
+        </div>
+
         {/* ROI Table Ledger */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 overflow-hidden">
           <h3 className="text-base font-bold text-gray-800 mb-6 flex items-center gap-2">
@@ -286,6 +574,8 @@ export default function ReportsPage() {
                     <th className="pb-3">Vehicle</th>
                     <th className="pb-3">Acquisition Cost</th>
                     <th className="pb-3">Total Operational Cost</th>
+                    <th className="pb-3 text-emerald-700">Shared Cargo Profit</th>
+                    <th className="pb-3">Net Profit Margin</th>
                     <th className="pb-3">Asset Value Ratio</th>
                   </tr>
                 </thead>
@@ -304,6 +594,14 @@ export default function ReportsPage() {
                         </td>
                         <td className="py-3.5 font-extrabold text-gray-800">
                           ₹{parseFloat(item.total_operational_cost).toLocaleString()}
+                        </td>
+                        <td className="py-3.5 font-bold text-emerald-700 font-mono">
+                          +₹{parseFloat(item.shared_profit || 0).toLocaleString()}
+                        </td>
+                        <td className="py-3.5 font-mono font-bold">
+                          <span className={item.net_profit >= 0 ? 'text-emerald-700' : 'text-gray-700'}>
+                            {item.net_profit >= 0 ? '+' : ''}₹{parseFloat(item.net_profit || 0).toLocaleString()}
+                          </span>
                         </td>
                         <td className="py-3.5">
                           <span className={`text-xs font-extrabold px-2.5 py-1 rounded-lg uppercase tracking-wide border ${

@@ -23,7 +23,17 @@ const analyticsSlice = createSlice({
       utilization: 0,
       openMaintenance: 0,
       fuelEfficiency: [],
-      operationalCosts: []
+      operationalCosts: [],
+      financialSummary: {
+        totalCompletedTrips: 0,
+        totalGrossRevenue: 0,
+        totalFreightRevenue: 0,
+        totalSharedCargoRevenue: 0,
+        totalFuelCost: 0,
+        totalNetProfit: 0,
+        overallMarginPct: 0
+      },
+      completedTripsFinancials: []
     },
     loading: false,
     error: null

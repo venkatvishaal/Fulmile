@@ -17,6 +17,12 @@ const tones = {
   // Maintenance log
   open: 'warn',
   closed: 'ok',
+  // Freight bookings
+  Pending: 'warn',
+  Quoted: 'transit',
+  Accepted: 'ok',
+  'In Transit': 'transit',
+  Delivered: 'ok',
 };
 
 const toneClass = {

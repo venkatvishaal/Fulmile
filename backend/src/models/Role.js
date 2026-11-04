@@ -12,7 +12,7 @@ const Role = sequelize.define('Role', {
     allowNull: false,
     unique: true,
     validate: {
-      isIn: [['fleet_manager', 'driver', 'safety_officer', 'financial_analyst']]
+      isIn: [['fleet_manager', 'driver', 'safety_officer', 'financial_analyst', 'shipper']]
     }
   },
   description: {

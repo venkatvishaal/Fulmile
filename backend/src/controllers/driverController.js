@@ -5,7 +5,8 @@ const driverController = {
   getAll: async (req, res) => {
     try {
       const { status } = req.query;
-      const where = {};
+      const carrierId = req.user?.carrierId || '00000000-0000-0000-0000-000000000000';
+      const where = req.user?.role === 'admin' && !req.user?.carrierId ? {} : { carrier_id: carrierId };
       if (status) where.status = status;
 
       const drivers = await Driver.findAll({ where, order: [['name', 'ASC']] });
@@ -19,7 +20,7 @@ const driverController = {
   getById: async (req, res) => {
     try {
       const driver = await Driver.findByPk(req.params.id);
-      if (!driver) {
+      if (!driver || (req.user?.carrierId && driver.carrier_id && driver.carrier_id !== req.user.carrierId)) {
         return res.status(404).json({ success: false, message: 'Driver not found' });
       }
       res.json({ success: true, data: driver });
@@ -45,7 +46,8 @@ const driverController = {
         name, license_number, license_category,
         license_expiry_date, contact_number,
         safety_score: safety_score || 5.0,
-        status: 'Available'
+        status: 'Available',
+        carrier_id: req.user?.carrierId || null
       });
 
       res.status(201).json({ success: true, message: 'Driver added successfully', data: driver });
@@ -58,7 +60,7 @@ const driverController = {
   update: async (req, res) => {
     try {
       const driver = await Driver.findByPk(req.params.id);
-      if (!driver) {
+      if (!driver || (req.user?.carrierId && driver.carrier_id && driver.carrier_id !== req.user.carrierId)) {
         return res.status(404).json({ success: false, message: 'Driver not found' });
       }
 
@@ -96,7 +98,7 @@ const driverController = {
   delete: async (req, res) => {
     try {
       const driver = await Driver.findByPk(req.params.id);
-      if (!driver) {
+      if (!driver || (req.user?.carrierId && driver.carrier_id && driver.carrier_id !== req.user.carrierId)) {
         return res.status(404).json({ success: false, message: 'Driver not found' });
       }
       await driver.destroy();
@@ -115,11 +117,17 @@ const driverController = {
   getEligibleForDispatch: async (req, res) => {
     try {
       const today = new Date().toISOString().split('T')[0];
+      const carrierId = req.user?.carrierId || '00000000-0000-0000-0000-000000000000';
+      const where = {
+        status: 'Available',
+        license_expiry_date: { [Op.gte]: today }
+      };
+      if (req.user?.role !== 'admin' || req.user?.carrierId) {
+        where.carrier_id = carrierId;
+      }
+
       const drivers = await Driver.findAll({
-        where: {
-          status: 'Available',
-          license_expiry_date: { [Op.gte]: today }
-        },
+        where,
         order: [['name', 'ASC']]
       });
       res.json({ success: true, data: drivers });

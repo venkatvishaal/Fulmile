@@ -46,6 +46,11 @@ const Driver = sequelize.define('Driver', {
     validate: {
       isIn: [['Available', 'On Trip', 'Off Duty', 'Suspended']]
     }
+  },
+  carrier_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: { model: 'carriers', key: 'id' }
   }
 }, {
   tableName: 'drivers',

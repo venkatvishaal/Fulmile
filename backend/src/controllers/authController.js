@@ -1,40 +1,118 @@
 const bcrypt = require('bcryptjs');
-const { User, Role } = require('../models');
+const { User, Role, Carrier } = require('../models');
 const { signSession } = require('../utils/tokens');
+const sequelize = require('../config/database');
 
 const authController = {
   register: async (req, res) => {
+    const t = await sequelize.transaction();
     try {
-      const { name, email, password, role, phone } = req.body;
+      const { name, email, password, phone, accountType, role, carrier, shipperType, companyName, gstNumber } = req.body;
 
       // Check existing user
-      const existing = await User.findOne({ where: { email } });
+      const existing = await User.findOne({ where: { email }, transaction: t });
       if (existing) {
-        return res.status(409).json({
-          success: false,
-          message: 'A user with this email already exists'
-        });
+        await t.rollback();
+        return res.status(409).json({ success: false, message: 'A user with this email already exists' });
       }
 
-      // Find role
-      const roleRecord = await Role.findOne({ where: { name: role } });
-      if (!roleRecord) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid role specified'
-        });
+      let roleRecord;
+      let carrierId = null;
+
+      if (accountType === 'carrier') {
+        // ── CARRIER LOGISTICS PATH ──
+        const carrierRole = role || 'fleet_manager';
+        if (!['fleet_manager', 'driver', 'safety_officer', 'financial_analyst'].includes(carrierRole)) {
+          await t.rollback();
+          return res.status(400).json({ success: false, message: 'Invalid carrier role' });
+        }
+
+        roleRecord = await Role.findOne({ where: { name: carrierRole }, transaction: t });
+        if (!roleRecord) {
+          await t.rollback();
+          return res.status(400).json({ success: false, message: 'Role not found' });
+        }
+
+        // Create or attach the carrier company
+        if (carrier && (carrier.id || carrier.company_name)) {
+          let carrierRecord = null;
+          if (carrier.id) {
+            carrierRecord = await Carrier.findByPk(carrier.id, { transaction: t });
+          }
+          if (!carrierRecord && carrier.company_name) {
+            const trimmedName = carrier.company_name.trim();
+            // Case-insensitive search to join the same logistics company
+            carrierRecord = await Carrier.findOne({
+              where: sequelize.where(
+                sequelize.fn('LOWER', sequelize.col('company_name')),
+                trimmedName.toLowerCase()
+              ),
+              transaction: t
+            });
+
+            if (!carrierRecord) {
+              carrierRecord = await Carrier.create({
+                company_name: trimmedName,
+                gst_number: carrier.gst_number || null,
+                address: carrier.address || null,
+                city: carrier.city || null,
+                state: carrier.state || null,
+                pincode: carrier.pincode || null,
+                contact_phone: carrier.contact_phone || null,
+                contact_email: carrier.contact_email || null
+              }, { transaction: t });
+            }
+          }
+
+          if (carrierRecord) {
+            carrierId = carrierRecord.id;
+          } else {
+            await t.rollback();
+            return res.status(404).json({ success: false, message: 'Selected logistics company not found' });
+          }
+        } else {
+          await t.rollback();
+          return res.status(400).json({ success: false, message: 'Carrier company details are required' });
+        }
+
+      } else if (accountType === 'shipper') {
+        // ── SHIPPER PATH ──
+        roleRecord = await Role.findOne({ where: { name: 'shipper' }, transaction: t });
+        if (!roleRecord) {
+          await t.rollback();
+          return res.status(400).json({ success: false, message: 'Shipper role not configured in database' });
+        }
+
+        if (!shipperType || !['individual', 'company'].includes(shipperType)) {
+          await t.rollback();
+          return res.status(400).json({ success: false, message: 'Shipper type must be "individual" or "company"' });
+        }
+
+      } else {
+        // ── BACKWARD COMPATIBLE LEGACY PATH ──
+        const legacyRole = role || 'fleet_manager';
+        roleRecord = await Role.findOne({ where: { name: legacyRole }, transaction: t });
+        if (!roleRecord) {
+          await t.rollback();
+          return res.status(400).json({ success: false, message: 'Invalid role specified' });
+        }
       }
 
+      // Create user with zero dummy metadata
       const user = await User.create({
         name,
         email,
-        password_hash: password, // bcrypt hook handles hashing
+        password_hash: password,
         role_id: roleRecord.id,
-        phone,
-        // shortcut: no email verification until we have a sending domain; re-add a verify step
-        // (and default this to false) once we can email any address.
+        phone: phone || null,
+        carrier_id: carrierId,
+        shipper_type: accountType === 'shipper' ? shipperType : null,
+        company_name: (accountType === 'shipper' && shipperType === 'company') ? (companyName || null) : null,
+        gst_number: (accountType === 'shipper' && shipperType === 'company') ? (gstNumber || null) : null,
         email_verified: true
-      });
+      }, { transaction: t });
+
+      await t.commit();
 
       res.status(201).json({
         success: true,
@@ -43,16 +121,16 @@ const authController = {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: roleRecord.name
+          role: roleRecord.name,
+          carrierId: carrierId,
+          shipperType: user.shipper_type
         },
         token: signSession(user, roleRecord.name)
       });
     } catch (error) {
+      await t.rollback();
       console.error('Registration error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Registration failed. Please try again.'
-      });
+      res.status(500).json({ success: false, message: 'Registration failed. Please try again.' });
     }
   },
 
@@ -66,10 +144,7 @@ const authController = {
       });
 
       if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid email or password'
-        });
+        return res.status(401).json({ success: false, message: 'Invalid email or password' });
       }
 
       if (!user.is_active) {
@@ -83,16 +158,16 @@ const authController = {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role.name
+          role: user.role.name,
+          carrierId: user.carrier_id,
+          shipperType: user.shipper_type,
+          companyName: user.company_name
         },
         token: signSession(user, user.role.name)
       });
     } catch (error) {
       console.error('Login error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Login failed. Please try again.'
-      });
+      res.status(500).json({ success: false, message: 'Login failed. Please try again.' });
     }
   },
 
@@ -113,7 +188,6 @@ const authController = {
     }
   },
 
-  // Revokes every token issued to this user, not just the one in this browser.
   logout: async (req, res) => {
     try {
       await User.increment('token_version', { where: { id: req.user.id } });
@@ -128,7 +202,6 @@ const authController = {
     const user = await User.findByPk(req.user.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     if (!(await bcrypt.compare(String(req.body.password || ''), user.password_hash))) {
-      // 400, not 401: a 401 would make the frontend treat it as an expired session and log out.
       return res.status(400).json({ success: false, message: 'Password is incorrect.' });
     }
     await user.destroy();

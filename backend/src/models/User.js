@@ -44,6 +44,26 @@ const User = sequelize.define('User', {
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 0
+  },
+  carrier_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: { model: 'carriers', key: 'id' }
+  },
+  shipper_type: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    validate: {
+      isIn: [['individual', 'company']]
+    }
+  },
+  company_name: {
+    type: DataTypes.STRING(150),
+    allowNull: true
+  },
+  gst_number: {
+    type: DataTypes.STRING(50),
+    allowNull: true
   }
 }, {
   tableName: 'users',

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import io from 'socket.io-client';
 import { BsArrowRight } from 'react-icons/bs';
+import { FaRoute, FaArrowRight } from 'react-icons/fa';
 import { fetchDashboard } from '../redux/slices/analyticsSlice';
 import KpiCard from '../components/ui/KpiCard';
 import PageHeader from '../components/ui/PageHeader';
@@ -177,11 +178,12 @@ export default function Dashboard() {
         <DashboardSkeleton />
       ) : (
         <div className="space-y-6">
-          <section aria-label="Key figures" className="panel grid grid-cols-2 divide-line lg:grid-cols-4 [&>*:nth-child(odd)]:border-r [&>*:nth-child(n+3)]:border-t lg:[&>*]:border-t-0 lg:[&>*:not(:last-child)]:border-r">
-            <KpiCard title="Available vehicles" value={data.vehicles.Available || 0} suffix={`/ ${data.vehicles.total || 0}`} tone="bg-ok" />
-            <KpiCard title="Active dispatches" value={data.trips.Dispatched || 0} tone="bg-transit" />
-            <KpiCard title="Fleet utilisation" value={data.utilization || 0} suffix="%" hint="On-trip share of active fleet" />
-            <KpiCard title="Open maintenance" value={data.openMaintenance || 0} tone="bg-signal" />
+          <section aria-label="Key figures" className="panel grid grid-cols-2 divide-line lg:grid-cols-5 [&>*:nth-child(odd)]:border-r [&>*:nth-child(n+3)]:border-t lg:[&>*]:border-t-0 lg:[&>*:not(:last-child)]:border-r">
+            <KpiCard title="Delivered Revenue" value={`₹${(data.financialSummary?.totalGrossRevenue || 0).toLocaleString()}`} suffix={`(${data.financialSummary?.totalCompletedTrips || 0} trips)`} tone="bg-ink" hint="Completed dispatch settlements" />
+            <KpiCard title="Shared cargo profit" value={`₹${(data.sharedCargoAnalytics?.totalPureProfit || 0).toLocaleString()}`} tone="bg-emerald-500" hint="100% net margin pure profit" />
+            <KpiCard title="Trip fuel cost" value={`₹${(data.financialSummary?.totalFuelCost || 0).toLocaleString()}`} tone="bg-signal" hint="Settled fuel expense" />
+            <KpiCard title="Net trip profit" value={`+₹${(data.financialSummary?.totalNetProfit || 0).toLocaleString()}`} suffix={`(${data.financialSummary?.overallMarginPct || 0}%)`} tone="bg-ok" hint="Operating profit margin" />
+            <KpiCard title="Fleet utilisation" value={data.utilization || 0} suffix="%" hint="On-trip share of active fleet" tone="bg-transit" />
           </section>
 
           <div className="grid gap-6 lg:grid-cols-2">
@@ -223,6 +225,59 @@ export default function Dashboard() {
               </section>
             )}
           </div>
+
+          {/* Completed Trips Financial Settlement Panel */}
+          {data.completedTripsFinancials && data.completedTripsFinancials.length > 0 && (
+            <section className="panel p-5" aria-labelledby="completed-trips-title">
+              <div className="flex items-center justify-between border-b border-line pb-3">
+                <div className="flex items-center gap-2">
+                  <FaRoute className="text-blue-600" />
+                  <h2 id="completed-trips-title" className="text-base font-semibold">Completed Trips Financial Settlement</h2>
+                </div>
+                <Link to="/reports" className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:underline">
+                  Full Financial Ledger & Audit <BsArrowRight />
+                </Link>
+              </div>
+
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="border-b border-line text-muted uppercase font-mono font-bold tracking-wider">
+                      <th className="pb-2">Trip / Route</th>
+                      <th className="pb-2">Vehicle</th>
+                      <th className="pb-2">Primary Freight</th>
+                      <th className="pb-2 text-emerald-700">Shared Cargo Profit</th>
+                      <th className="pb-2">Gross Revenue</th>
+                      <th className="pb-2 text-red-600">Fuel Cost</th>
+                      <th className="pb-2 text-emerald-700">Net Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line/60">
+                    {data.completedTripsFinancials.slice(0, 5).map((ct) => (
+                      <tr key={ct.id} className="hover:bg-paper/40 transition">
+                        <td className="py-2.5">
+                          <span className="font-mono font-bold text-ink">{ct.tracking_id}</span>
+                          <div className="font-semibold text-ink/80 text-[11px]">
+                            {ct.source} <FaArrowRight className="inline text-[9px] text-muted mx-0.5" /> {ct.destination}
+                          </div>
+                        </td>
+                        <td className="py-2.5 font-mono text-muted">{ct.vehicle_registration}</td>
+                        <td className="py-2.5 font-mono font-semibold">₹{ct.primary_revenue.toLocaleString()}</td>
+                        <td className="py-2.5 font-mono text-emerald-700 font-bold">
+                          {ct.shared_cargo_revenue > 0 ? `+₹${ct.shared_cargo_revenue.toLocaleString()}` : '—'}
+                        </td>
+                        <td className="py-2.5 font-mono font-bold">₹{ct.total_revenue.toLocaleString()}</td>
+                        <td className="py-2.5 font-mono text-red-600 font-semibold">-₹{ct.fuel_cost.toLocaleString()}</td>
+                        <td className="py-2.5 font-mono font-black text-emerald-700">
+                          +₹{ct.net_profit.toLocaleString()} ({ct.profit_margin_pct}%)
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
         </div>
       )}
     </>

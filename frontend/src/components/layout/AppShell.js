@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import {
   BsGrid1X2, BsSignpost2, BsTruck, BsPersonBadge, BsWrench, BsFuelPump,
   BsBarChartLine, BsBoxSeam, BsGeoAlt, BsList, BsX, BsBoxArrowRight, BsGear,
+  BsPlusCircle
 } from 'react-icons/bs';
 import { logoutSuccess } from '../../redux/slices/authSlice';
 import authService from '../../services/authService';
@@ -22,11 +23,14 @@ const TITLES = {
   '/maintenance': 'Maintenance',
   '/fuel-logs': 'Fuel & expenses',
   '/reports': 'Reports',
-  '/shared-search': 'Shared shipments',
+  '/shared-search': 'Shared cargo',
   '/track': 'Track cargo',
   '/account': 'Your account',
   '/privacy': 'Privacy policy',
   '/terms': 'Terms of service',
+  '/book-freight': 'Book freight cargo',
+  '/my-bookings': 'My shipments',
+  '/freight-requests': 'Freight requests'
 };
 
 // These pages bring their own full-screen layout when signed out.
@@ -35,10 +39,20 @@ const STANDALONE = ['/', '/login', '/register'];
 // Roles mirror the <PrivateRoute allowedRoles> in App.js; omitted roles = every signed-in user.
 const NAV = [
   {
+    group: 'Freight Portal',
+    items: [
+      { to: '/book-freight', label: 'Book freight', icon: BsPlusCircle, roles: ['shipper'] },
+      { to: '/shared-search', label: 'Shared cargo', icon: BsBoxSeam, roles: ['shipper'] },
+      { to: '/my-bookings', label: 'My shipments', icon: BsBoxSeam, roles: ['shipper'] },
+      { to: '/track', label: 'Track cargo', icon: BsGeoAlt, roles: ['shipper'] },
+    ],
+  },
+  {
     group: 'Operations',
     items: [
-      { to: '/dashboard', label: 'Dashboard', icon: BsGrid1X2 },
+      { to: '/dashboard', label: 'Dashboard', icon: BsGrid1X2, roles: ['fleet_manager', 'driver', 'safety_officer', 'financial_analyst'] },
       { to: '/trips', label: 'Trips', icon: BsSignpost2, roles: ['fleet_manager', 'driver'] },
+      { to: '/freight-requests', label: 'Freight requests', icon: BsBoxSeam, roles: ['fleet_manager'] },
       { to: '/vehicles', label: 'Vehicles', icon: BsTruck, roles: ['fleet_manager'] },
       { to: '/drivers', label: 'Drivers', icon: BsPersonBadge, roles: ['fleet_manager', 'safety_officer'] },
       { to: '/maintenance', label: 'Maintenance', icon: BsWrench, roles: ['fleet_manager'] },
@@ -54,8 +68,7 @@ const NAV = [
   {
     group: 'Network',
     items: [
-      { to: '/shared-search', label: 'Shared cargo', icon: BsBoxSeam },
-      { to: '/track', label: 'Track cargo', icon: BsGeoAlt },
+      { to: '/track', label: 'Track cargo', icon: BsGeoAlt, roles: ['fleet_manager', 'driver', 'safety_officer', 'financial_analyst'] },
     ],
   },
 ];
@@ -167,7 +180,6 @@ export default function AppShell({ children }) {
 
   const handleLogout = async () => {
     closeDrawer();
-    // Revokes this user's tokens server-side; sign out locally even if the server is unreachable.
     await authService.logout().catch(() => {});
     dispatch(logoutSuccess());
     toast.info('Logged out successfully');
@@ -175,7 +187,6 @@ export default function AppShell({ children }) {
   };
 
   if (!isAuthenticated) {
-    // Landing and auth pages bring their own navigation.
     if (STANDALONE.includes(location.pathname)) return children;
     return (
       <div className="flex min-h-screen flex-col">
@@ -185,6 +196,9 @@ export default function AppShell({ children }) {
     );
   }
 
+  const isShipper = user?.role === 'shipper';
+  const homePath = isShipper ? '/my-bookings' : '/dashboard';
+
   return (
     <div className="min-h-screen lg:pl-[232px]">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded focus:bg-signal focus:px-3 focus:py-2 focus:text-ink">
@@ -193,14 +207,14 @@ export default function AppShell({ children }) {
 
       {/* Desktop rail */}
       <aside className="fixed inset-y-0 left-0 hidden w-[232px] flex-col bg-ink lg:flex">
-        <Link to="/dashboard" className="px-6 pb-2 pt-6" aria-label="TransitOps dashboard"><Logo inverted /></Link>
+        <Link to={homePath} className="px-6 pb-2 pt-6" aria-label="TransitOps home"><Logo inverted /></Link>
         <NavList role={user?.role} />
         <UserFooter user={user} onLogout={handleLogout} />
       </aside>
 
       {/* Mobile / tablet top bar */}
       <header className="sticky top-0 z-20 flex items-center justify-between bg-ink px-4 py-3 lg:hidden">
-        <Link to="/dashboard" aria-label="TransitOps dashboard"><Logo inverted /></Link>
+        <Link to={homePath} aria-label="TransitOps home"><Logo inverted /></Link>
         <button
           type="button"
           onClick={() => drawerRef.current?.showModal()}

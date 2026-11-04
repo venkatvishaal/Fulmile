@@ -50,6 +50,11 @@ const Vehicle = sequelize.define('Vehicle', {
     validate: {
       isIn: [['Available', 'On Trip', 'In Shop', 'Retired']]
     }
+  },
+  carrier_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: { model: 'carriers', key: 'id' }
   }
 }, {
   tableName: 'vehicles',

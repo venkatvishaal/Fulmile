@@ -57,11 +57,11 @@ const authMiddleware = async (req, res, next) => {
   if (decoded.purpose) return unauthorized(res, 'Invalid token. Please login.');
 
   try {
-    const user = await User.findByPk(decoded.id, { attributes: ['id', 'is_active', 'token_version'] });
+    const user = await User.findByPk(decoded.id, { attributes: ['id', 'is_active', 'token_version', 'carrier_id'] });
     if (!user || !user.is_active || user.token_version !== decoded.tv) {
       return unauthorized(res, 'Your session has ended. Please login again.');
     }
-    req.user = decoded;
+    req.user = { ...decoded, carrierId: user.carrier_id || decoded.carrierId || null };
     if (rlsEnabled) return await withRlsContext(req, res, next);
     next();
   } catch (error) {

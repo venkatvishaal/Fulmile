@@ -5,6 +5,7 @@ import driverReducer from './slices/driverSlice';
 import tripReducer from './slices/tripSlice';
 import analyticsReducer from './slices/analyticsSlice';
 import uiReducer from './slices/uiSlice';
+import freightBookingReducer from './slices/freightBookingSlice';
 
 export const store = configureStore({
   reducer: {
@@ -13,6 +14,7 @@ export const store = configureStore({
     drivers: driverReducer,
     trips: tripReducer,
     analytics: analyticsReducer,
-    ui: uiReducer
+    ui: uiReducer,
+    freightBookings: freightBookingReducer
   }
 });

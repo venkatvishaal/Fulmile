@@ -1,5 +1,7 @@
-const { Trip, Vehicle, Driver, FuelLog } = require('../models');
+const { Trip, Vehicle, Driver, FuelLog, FreightBooking } = require('../models');
+const { Op } = require('sequelize');
 const sequelize = require('../config/database');
+const crypto = require('crypto');
 
 // A truck can carry several shipments at once; it (and its driver) only frees up
 // when the last Dispatched trip ends. Call after the finishing trip's status changed.
@@ -21,14 +23,63 @@ const tripController = {
   getAll: async (req, res) => {
     try {
       const { status } = req.query;
-      const where = {};
+      const carrierId = req.user?.carrierId || '00000000-0000-0000-0000-000000000000';
+      const where = req.user?.role === 'admin' && !req.user?.carrierId ? {} : { carrier_id: carrierId };
       if (status) where.status = status;
+
+      // Single Dispatch Rule: Reconcile active running corridor trips with any attached shared cargos
+      try {
+        const dispatchedTrips = await Trip.findAll({
+          where: { ...where, status: 'Dispatched' }
+        });
+
+        for (const dt of dispatchedTrips) {
+          // Find in-transit shared bookings for this carrier that need corridor attachment
+          const orphanBookings = await FreightBooking.findAll({
+            where: {
+              carrier_id: dt.carrier_id,
+              status: 'In Transit',
+              [Op.or]: [
+                { trip_id: { [Op.ne]: dt.id } },
+                { trip_id: null }
+              ]
+            }
+          });
+
+          for (const ob of orphanBookings) {
+            if (ob.trip_id) {
+              const oldTrip = await Trip.findByPk(ob.trip_id);
+              if (oldTrip && oldTrip.vehicle_id === dt.vehicle_id && oldTrip.id !== dt.id) {
+                await ob.update({ trip_id: dt.id });
+                await oldTrip.destroy();
+              }
+            } else {
+              await ob.update({ trip_id: dt.id });
+            }
+          }
+
+          // Keep running trip cargo weight in sync with sum of all attached shipments
+          const totalWeight = await FreightBooking.sum('cargo_weight', {
+            where: { trip_id: dt.id }
+          });
+          if (totalWeight && parseFloat(totalWeight) > 0 && parseFloat(dt.cargo_weight) !== parseFloat(totalWeight)) {
+            await dt.update({ cargo_weight: parseFloat(totalWeight) });
+          }
+        }
+      } catch (reconcileErr) {
+        console.warn('Corridor reconcile warning:', reconcileErr);
+      }
 
       const trips = await Trip.findAll({
         where,
         include: [
           { model: Vehicle, as: 'vehicle', attributes: ['id', 'registration_number', 'model_name', 'max_load_capacity_kg', 'status'] },
-          { model: Driver, as: 'driver', attributes: ['id', 'name', 'license_number', 'status'] }
+          { model: Driver, as: 'driver', attributes: ['id', 'name', 'license_number', 'status'] },
+          {
+            model: FreightBooking,
+            as: 'freight_bookings',
+            attributes: ['id', 'shipment_id', 'pickup_address', 'delivery_address', 'cargo_weight', 'cargo_type', 'status', 'price_quote', 'is_shared']
+          }
         ],
         order: [['created_at', 'DESC']]
       });
@@ -42,13 +93,17 @@ const tripController = {
   create: async (req, res) => {
     const t = await sequelize.transaction();
     try {
-      const { source, destination, vehicle_id, driver_id, cargo_weight, planned_distance } = req.body;
+      const { source, destination, vehicle_id, driver_id, cargo_weight, planned_distance, estimated_fuel_liters, booking_id } = req.body;
 
       // ① Fetch and validate vehicle
       const vehicle = await Vehicle.findByPk(vehicle_id, { transaction: t, lock: true });
       if (!vehicle) {
         await t.rollback();
         return res.status(404).json({ success: false, message: 'Vehicle not found' });
+      }
+      if (req.user?.carrierId && vehicle.carrier_id && vehicle.carrier_id !== req.user.carrierId) {
+        await t.rollback();
+        return res.status(403).json({ success: false, message: 'You can only assign vehicles from your own carrier fleet' });
       }
       if (vehicle.status !== 'Available') {
         await t.rollback();
@@ -73,6 +128,10 @@ const tripController = {
       if (!driver) {
         await t.rollback();
         return res.status(404).json({ success: false, message: 'Driver not found' });
+      }
+      if (req.user?.carrierId && driver.carrier_id && driver.carrier_id !== req.user.carrierId) {
+        await t.rollback();
+        return res.status(403).json({ success: false, message: 'You can only assign drivers from your own carrier fleet' });
       }
       if (driver.status === 'Suspended') {
         await t.rollback();
@@ -100,10 +159,31 @@ const tripController = {
       }
 
       // ⑤ Create trip with status Draft
+      let tripPriceQuote = parseFloat(req.body.price_quote) || 0;
+      let linkedBooking = null;
+      if (booking_id) {
+        linkedBooking = await FreightBooking.findByPk(booking_id, { transaction: t });
+        if (linkedBooking && !tripPriceQuote && linkedBooking.price_quote) {
+          tripPriceQuote = parseFloat(linkedBooking.price_quote) || 0;
+        }
+      }
+
       const trip = await Trip.create({
         source, destination, vehicle_id, driver_id,
-        cargo_weight, planned_distance, status: 'Draft'
+        cargo_weight, planned_distance,
+        price_quote: tripPriceQuote,
+        estimated_fuel_liters: estimated_fuel_liters || null,
+        carrier_id: req.user?.carrierId || null,
+        status: 'Draft'
       }, { transaction: t });
+
+      // If linked to an accepted freight booking, attach the trip
+      if (linkedBooking) {
+        await linkedBooking.update({
+          trip_id: trip.id,
+          carrier_id: req.user?.carrierId || linkedBooking.carrier_id
+        }, { transaction: t });
+      }
 
       await t.commit();
 
@@ -178,21 +258,32 @@ const tripController = {
       }
 
       // Atomic state transition
-      await trip.update({ status: 'Dispatched', dispatched_at: new Date() }, { transaction: t });
+      const trackingId = trip.tracking_id || `TRK-${crypto.randomInt(100000, 999999)}`;
+      await trip.update({
+        status: 'Dispatched',
+        dispatched_at: new Date(),
+        tracking_id: trackingId
+      }, { transaction: t });
       await vehicle.update({ status: 'On Trip' }, { transaction: t });
       await driver.update({ status: 'On Trip' }, { transaction: t });
+
+      // Update any associated freight bookings to In Transit
+      await FreightBooking.update(
+        { status: 'In Transit' },
+        { where: { trip_id: trip.id }, transaction: t }
+      );
 
       await t.commit();
 
       // Emit Socket.io event
       const io = req.app.get('io');
-      if (io) io.emit('fleet:update', { event: 'trip_dispatched', tripId: trip.id });
+      if (io) io.emit('fleet:update', { event: 'trip_dispatched', tripId: trip.id, trackingId });
 
       res.json({
         success: true,
         message: joining
-          ? `Trip dispatched on ${vehicle.registration_number}, which is already en route with this driver.`
-          : 'Trip dispatched. Vehicle and driver are now On Trip.',
+          ? `Trip dispatched on ${vehicle.registration_number}, which is already en route with this driver. Tracking ID: ${trackingId}`
+          : `Trip dispatched. Tracking ID: ${trackingId}. Vehicle and driver are now On Trip.`,
         data: trip
       });
     } catch (error) {
@@ -233,6 +324,12 @@ const tripController = {
         cost: parseFloat(fuel_consumed_liters) * 100, // placeholder rate
         date: new Date().toISOString().split('T')[0]
       }, { transaction: t });
+
+      // Update any associated freight bookings to Delivered
+      await FreightBooking.update(
+        { status: 'Delivered' },
+        { where: { trip_id: trip.id }, transaction: t }
+      );
 
       await t.commit();
 

@@ -5,7 +5,8 @@ const vehicleController = {
   getAll: async (req, res) => {
     try {
       const { status, vehicle_type, region } = req.query;
-      const where = {};
+      const carrierId = req.user?.carrierId || '00000000-0000-0000-0000-000000000000';
+      const where = req.user?.role === 'admin' && !req.user?.carrierId ? {} : { carrier_id: carrierId };
       if (status) where.status = status;
       if (vehicle_type) where.vehicle_type = vehicle_type;
       if (region) where.region = { [Op.iLike]: `%${region}%` };
@@ -21,7 +22,7 @@ const vehicleController = {
   getById: async (req, res) => {
     try {
       const vehicle = await Vehicle.findByPk(req.params.id);
-      if (!vehicle) {
+      if (!vehicle || (req.user?.carrierId && vehicle.carrier_id && vehicle.carrier_id !== req.user.carrierId)) {
         return res.status(404).json({ success: false, message: 'Vehicle not found' });
       }
       res.json({ success: true, data: vehicle });
@@ -47,7 +48,8 @@ const vehicleController = {
       const vehicle = await Vehicle.create({
         registration_number, model_name, vehicle_type,
         max_load_capacity_kg, odometer: odometer || 0,
-        acquisition_cost, region, status: 'Available'
+        acquisition_cost, region, status: 'Available',
+        carrier_id: req.user?.carrierId || null
       });
 
       res.status(201).json({ success: true, message: 'Vehicle registered successfully', data: vehicle });
@@ -60,7 +62,7 @@ const vehicleController = {
   update: async (req, res) => {
     try {
       const vehicle = await Vehicle.findByPk(req.params.id);
-      if (!vehicle) {
+      if (!vehicle || (req.user?.carrierId && vehicle.carrier_id && vehicle.carrier_id !== req.user.carrierId)) {
         return res.status(404).json({ success: false, message: 'Vehicle not found' });
       }
 
@@ -80,7 +82,7 @@ const vehicleController = {
   delete: async (req, res) => {
     try {
       const vehicle = await Vehicle.findByPk(req.params.id);
-      if (!vehicle) {
+      if (!vehicle || (req.user?.carrierId && vehicle.carrier_id && vehicle.carrier_id !== req.user.carrierId)) {
         return res.status(404).json({ success: false, message: 'Vehicle not found' });
       }
       await vehicle.destroy();
@@ -98,8 +100,14 @@ const vehicleController = {
 
   getEligibleForDispatch: async (req, res) => {
     try {
+      const carrierId = req.user?.carrierId || '00000000-0000-0000-0000-000000000000';
+      const where = { status: 'Available' };
+      if (req.user?.role !== 'admin' || req.user?.carrierId) {
+        where.carrier_id = carrierId;
+      }
+
       const vehicles = await Vehicle.findAll({
-        where: { status: 'Available' },
+        where,
         order: [['registration_number', 'ASC']]
       });
       res.json({ success: true, data: vehicles });

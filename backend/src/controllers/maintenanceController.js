@@ -9,9 +9,18 @@ const maintenanceController = {
       if (status) where.status = status;
       if (vehicle_id) where.vehicle_id = vehicle_id;
 
+      const carrierId = req.user?.carrierId || '00000000-0000-0000-0000-000000000000';
+      const vehicleWhere = req.user?.role === 'admin' && !req.user?.carrierId ? {} : { carrier_id: carrierId };
+
       const logs = await MaintenanceLog.findAll({
         where,
-        include: [{ model: Vehicle, as: 'vehicle', attributes: ['id', 'registration_number', 'model_name'] }],
+        include: [{
+          model: Vehicle,
+          as: 'vehicle',
+          where: vehicleWhere,
+          required: Boolean(req.user?.role !== 'admin' || req.user?.carrierId),
+          attributes: ['id', 'registration_number', 'model_name']
+        }],
         order: [['created_at', 'DESC']]
       });
       res.json({ success: true, data: logs });

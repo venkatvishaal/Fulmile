@@ -22,6 +22,8 @@ const fuelRoutes = require('./routes/fuelLogs');
 const expenseRoutes = require('./routes/expenses');
 const reportRoutes = require('./routes/reports');
 const trackingRoutes = require('./routes/tracking');
+const carrierRoutes = require('./routes/carriers');
+const freightBookingRoutes = require('./routes/freightBookings');
 
 const app = express();
 const server = http.createServer(app);
@@ -45,7 +47,6 @@ app.set('trust proxy', 1); // Render sits in front of us; rate limits need the r
 app.use(helmet());
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow any origin or requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     return callback(null, true);
   },
@@ -55,8 +56,7 @@ app.use(morgan('dev'));
 
 app.use(express.json({ limit: '1mb' }));
 
-// General API ceiling per IP; auth routes add a much stricter one (routes/auth.js).
-// Generous because a whole depot can share one IP and each page load makes several calls.
+// General API ceiling per IP
 app.use('/api', rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 3000,
@@ -74,14 +74,9 @@ io.on('connection', (socket) => {
     socket.join(room);
   });
 
-  // ── Real-Time Driver GPS Relay ─────────────────────────────────
-  // Drivers emit 'driverLocation' with their GPS coordinates.
-  // Server relays it instantly to everyone watching that trip room.
-  // No DB write — this is pure real-time streaming.
   socket.on('driverLocation', ({ trip_id, latitude, longitude, location, speed }) => {
     if (!trip_id || latitude === undefined || longitude === undefined) return;
     
-    // Relay to all clients watching this trip (including the shipper portal)
     io.to(trip_id).emit('trackingUpdated', {
       id: `live-${Date.now()}`,
       trip_id,
@@ -92,7 +87,7 @@ io.on('connection', (socket) => {
       speed: speed || null,
       notes: null,
       timestamp: new Date().toISOString(),
-      isLive: true   // flag so the UI can render it differently
+      isLive: true
     });
   });
 
@@ -101,10 +96,7 @@ io.on('connection', (socket) => {
   });
 });
 
-
 // Routes
-
-// Unauthenticated liveness probe for Render health checks / uptime pingers.
 app.get('/', (req, res) => res.json({ name: 'TransitOps API', status: 'online', health: '/api/health' }));
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
@@ -117,6 +109,8 @@ app.use('/api/fuel-logs', fuelRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/tracking', trackingRoutes);
+app.use('/api/carriers', carrierRoutes);
+app.use('/api/freight-bookings', freightBookingRoutes);
 
 // Fallback route
 app.use((req, res, next) => {
@@ -140,7 +134,6 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // Programmer or other unknown error: don't leak details
   return res.status(500).json({
     success: false,
     message: 'Something went wrong on the server'
@@ -150,7 +143,6 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
-  // Without a secret, tokens would be signed with nothing (or a guessable default) and could be forged.
   if (!process.env.JWT_SECRET) {
     console.error('JWT_SECRET is not set. Refusing to start: add it to backend/.env (local) or the Render environment.');
     process.exit(1);

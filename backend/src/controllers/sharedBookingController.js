@@ -1,4 +1,4 @@
-const { Vehicle, Route, Trip, Driver } = require('../models');
+const { Vehicle, Route, Trip, Driver, FreightBooking } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 
@@ -259,22 +259,43 @@ const sharedBookingController = {
         driverId = availableDriver.id;
       }
 
-      // Truck already en route: the shipment is accepted straight onto it (capacity checked above),
-      // so nobody has to dispatch it again. Otherwise it waits as a Draft for the next dispatch.
-      const enRoute = !!activeTrip;
-      const trip = await Trip.create({
-        vehicle_id: vehicle.id,
-        driver_id: driverId,
-        source: pickup_location,
-        destination: delivery_location,
-        cargo_weight: reqWeight,
-        planned_distance: parseFloat(planned_distance),
-        status: enRoute ? 'Dispatched' : 'Draft',
-        dispatched_at: enRoute ? new Date() : null,
-        is_shared: true,
-        price_quote: price_quote || (parseFloat(route.price_per_kg) * reqWeight),
-        route_id: route.id
-      }, { transaction });
+      // Single Dispatch Rule: if truck is already en route, attach directly onto it in-place
+      let assignedTrip = activeTrip;
+      if (activeTrip) {
+        await activeTrip.update({
+          cargo_weight: parseFloat(activeTrip.cargo_weight) + reqWeight
+        }, { transaction });
+      } else {
+        assignedTrip = await Trip.create({
+          vehicle_id: vehicle.id,
+          driver_id: driverId,
+          carrier_id: vehicle.carrier_id,
+          source: pickup_location,
+          destination: delivery_location,
+          cargo_weight: reqWeight,
+          planned_distance: parseFloat(planned_distance),
+          status: 'Draft',
+          is_shared: true,
+          price_quote: price_quote || (parseFloat(route.price_per_kg) * reqWeight),
+          route_id: route.id
+        }, { transaction });
+      }
+
+      // If booked by a shipper, also record as a FreightBooking so it appears in "My Shipments"
+      if (req.user && String(req.user.role || '').toLowerCase() === 'shipper') {
+        await FreightBooking.create({
+          shipper_id: req.user.id,
+          pickup_address: pickup_location,
+          delivery_address: delivery_location,
+          cargo_type: 'General Goods (Shared)',
+          cargo_weight: reqWeight,
+          estimated_distance_km: parseFloat(planned_distance),
+          carrier_id: vehicle.carrier_id,
+          trip_id: assignedTrip.id,
+          price_quote: price_quote || (parseFloat(route.price_per_kg) * reqWeight),
+          status: activeTrip ? 'In Transit' : 'Accepted'
+        }, { transaction });
+      }
 
       await transaction.commit();
 
@@ -282,7 +303,7 @@ const sharedBookingController = {
       const io = req.app.get('io');
       if (io) {
         io.to('fleet').emit('shared_booking_created', {
-          trip_id: trip.id,
+          trip_id: assignedTrip.id,
           vehicle_registration: vehicle.registration_number,
           cargo_weight: reqWeight
         });
@@ -290,10 +311,10 @@ const sharedBookingController = {
 
       res.status(201).json({
         success: true,
-        message: enRoute
+        message: activeTrip
           ? `Booked onto ${vehicle.registration_number}, which is already en route. The shipment is on its way.`
           : 'Booked. The shipment goes out with this vehicle\'s next dispatch.',
-        data: trip
+        data: assignedTrip
       });
     } catch (error) {
       await transaction.rollback();

@@ -3,8 +3,9 @@ import { useReducedMotion } from 'motion/react';
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { toast } from 'react-toastify';
-import api from '../services/api';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import api from '../services/api';
 import { BsSearch, BsTruck, BsShieldCheck, BsBroadcast, BsArrowRight } from 'react-icons/bs';
 import { RouteLine } from '../components/landing/HeroBoard';
 import { hasWebGL } from '../components/landing/webgl';
@@ -12,17 +13,13 @@ import { hasWebGL } from '../components/landing/webgl';
 // three.js loads in its own chunk; the SVG route covers loading and no-WebGL browsers.
 const TrackScene = lazy(() => import('../components/track/TrackScene'));
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Fix Leaflet's broken default icon paths when bundled with webpack/CRA
-// ─────────────────────────────────────────────────────────────────────────────
-function fixLeafletIcons(L) {
-  delete L.Icon.Default.prototype._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-    iconUrl:       require('leaflet/dist/images/marker-icon.png'),
-    shadowUrl:     require('leaflet/dist/images/marker-shadow.png'),
-  });
-}
+// Fix Leaflet's default marker icons
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
 
 // Custom truck icon SVG data-URL
 const truckIconSvg = `
@@ -47,33 +44,103 @@ export default function ShipperTracking() {
 
   // Leaflet refs
   const mapDivRef     = useRef(null);   // DOM element for the map
-  const leafletRef    = useRef(null);   // Leaflet library instance (lazy-loaded)
   const mapRef        = useRef(null);   // L.map instance
   const markerRef     = useRef(null);   // current-position marker
   const polylineRef   = useRef(null);   // route trail polyline
   const allCoordsRef  = useRef([]);     // accumulated [lat,lng] pairs
 
-  // ─── Lazy-load Leaflet ────────────────────────────────────────────────────
-  const ensureLeaflet = useCallback(async () => {
-    if (leafletRef.current) return leafletRef.current;
-    const L = await import('leaflet');
-    fixLeafletIcons(L.default || L);
-    leafletRef.current = L.default || L;
-    return leafletRef.current;
+  // ─── Render checkpoints on the map ────────────────────────────────────────
+  const renderCheckpoints = useCallback((cps, isLive = false) => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+
+    const validCps = (cps || [])
+      .map(cp => ({
+        ...cp,
+        lat: parseFloat(cp.latitude),
+        lng: parseFloat(cp.longitude)
+      }))
+      .filter(c => !isNaN(c.lat) && !isNaN(c.lng));
+
+    if (validCps.length === 0) {
+      map.setView([20.5937, 78.9629], 5);
+      return;
+    }
+
+    // Reconstruct polyline (sorted oldest first)
+    const sorted = [...validCps].reverse();
+    const coords = sorted.map(c => [c.lat, c.lng]);
+    allCoordsRef.current = coords;
+
+    if (coords.length > 1) {
+      if (polylineRef.current) {
+        polylineRef.current.setLatLngs(coords);
+      } else {
+        polylineRef.current = L.polyline(coords, {
+          color: '#3B82F6',
+          weight: 4,
+          opacity: 0.8,
+        }).addTo(map);
+      }
+    }
+
+    // Latest checkpoint (most recent)
+    const latest = validCps[0];
+    const latLng = [latest.lat, latest.lng];
+
+    const icon = L.icon({
+      iconUrl: truckIconUrl,
+      iconSize: [48, 48],
+      iconAnchor: [24, 24],
+      popupAnchor: [0, -24],
+    });
+
+    if (markerRef.current) {
+      markerRef.current.setLatLng(latLng);
+      markerRef.current.setIcon(icon);
+    } else {
+      markerRef.current = L.marker(latLng, { icon }).addTo(map);
+    }
+
+    const speedText = latest.speed != null ? `<br/>🏎 <strong>${latest.speed} km/h</strong>` : '';
+    const badge = latest.isLive || isLive
+      ? '<span style="background:#22c55e;color:white;padding:2px 6px;border-radius:999px;font-size:10px;font-weight:700;">● LIVE GPS</span>'
+      : '<span style="background:#3b82f6;color:white;padding:2px 6px;border-radius:999px;font-size:10px;font-weight:700;">CHECKPOINT</span>';
+
+    markerRef.current
+      .bindPopup(
+        `<div style="font-family:system-ui;min-width:160px">
+          ${badge}
+          <br/><strong style="font-size:14px">📍 ${latest.location}</strong>
+          <br/><span style="color:#6b7280;font-size:12px">${latest.lat.toFixed(5)}, ${latest.lng.toFixed(5)}</span>
+          ${speedText}
+        </div>`,
+        { maxWidth: 240 }
+      )
+      .openPopup();
+
+    map.flyTo(latLng, Math.max(map.getZoom(), 12), {
+      animate: true,
+      duration: 1.5,
+    });
   }, []);
 
-  // ─── Initialize or Re-initialize the Leaflet map ─────────────────────────
-  const initMap = useCallback(async () => {
-    if (!mapDivRef.current) return;
-    const L = await ensureLeaflet();
+  // ─── Initialize map when DOM element is mounted ───────────────────────────
+  useEffect(() => {
+    if (!trip || !mapDivRef.current) return;
 
-    // Destroy previous instance if any
+    // Destroy existing instance if container changed
     if (mapRef.current) {
       mapRef.current.remove();
-      mapRef.current   = null;
-      markerRef.current  = null;
+      mapRef.current = null;
+      markerRef.current = null;
       polylineRef.current = null;
       allCoordsRef.current = [];
+    }
+
+    // Clear any residual leaflet marker ID on the div
+    if (mapDivRef.current._leaflet_id) {
+      mapDivRef.current._leaflet_id = null;
     }
 
     const map = L.map(mapDivRef.current, { zoomControl: true }).setView(
@@ -86,74 +153,36 @@ export default function ShipperTracking() {
       maxZoom: 19,
     }).addTo(map);
 
-    // Add a subtle attribution note
     map.attributionControl.setPrefix('TransitOps Live Tracker');
-
     mapRef.current = map;
-  }, [ensureLeaflet]);
 
-  // ─── Update the map when a new checkpoint arrives ────────────────────────
-  const updateMap = useCallback(async (lat, lng, locationName, speed, isLive) => {
-    if (!mapRef.current) return;
-    const L = await ensureLeaflet();
-
-    const latLng = [lat, lng];
-
-    // Custom icon
-    const icon = L.icon({
-      iconUrl: truckIconUrl,
-      iconSize: [48, 48],
-      iconAnchor: [24, 24],
-      popupAnchor: [0, -24],
-    });
-
-    if (markerRef.current) {
-      markerRef.current.setLatLng(latLng);
-      markerRef.current.setIcon(icon);
-    } else {
-      markerRef.current = L.marker(latLng, { icon }).addTo(mapRef.current);
-    }
-
-    // Update popup
-    const speedText = speed != null ? `<br/>🏎 <strong>${speed} km/h</strong>` : '';
-    const badge = isLive
-      ? '<span style="background:#22c55e;color:white;padding:2px 6px;border-radius:999px;font-size:10px;font-weight:700;">● LIVE GPS</span>'
-      : '<span style="background:#3b82f6;color:white;padding:2px 6px;border-radius:999px;font-size:10px;font-weight:700;">CHECKPOINT</span>';
-
-    markerRef.current
-      .bindPopup(
-        `<div style="font-family:system-ui;min-width:160px">
-          ${badge}
-          <br/><strong style="font-size:14px">📍 ${locationName}</strong>
-          <br/><span style="color:#6b7280;font-size:12px">${lat.toFixed(5)}, ${lng.toFixed(5)}</span>
-          ${speedText}
-        </div>`,
-        { maxWidth: 240 }
-      )
-      .openPopup();
-
-    // Append to accumulated coords and update polyline
-    allCoordsRef.current = [...allCoordsRef.current, latLng];
-
-    if (allCoordsRef.current.length > 1) {
-      if (polylineRef.current) {
-        polylineRef.current.setLatLngs(allCoordsRef.current);
-      } else {
-        polylineRef.current = L.polyline(allCoordsRef.current, {
-          color: '#3B82F6',
-          weight: 4,
-          opacity: 0.8,
-          dashArray: isLive ? '6 4' : null,
-        }).addTo(mapRef.current);
+    // Invalidate size to guarantee tiles render without grey gaps
+    setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
       }
-    }
+    }, 150);
 
-    // Smooth pan to the new location
-    mapRef.current.flyTo(latLng, Math.max(mapRef.current.getZoom(), 12), {
-      animate: true,
-      duration: 1.5,
-    });
-  }, [ensureLeaflet]);
+    // Initial plot of checkpoints
+    renderCheckpoints(checkpoints);
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+        markerRef.current = null;
+        polylineRef.current = null;
+        allCoordsRef.current = [];
+      }
+    };
+  }, [trip]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-plot when checkpoints update
+  useEffect(() => {
+    if (mapRef.current && checkpoints.length > 0) {
+      renderCheckpoints(checkpoints);
+    }
+  }, [checkpoints, renderCheckpoints]);
 
   // ─── Fetch tracking data ──────────────────────────────────────────────────
   const fetchTrackingData = useCallback(async (tid) => {
@@ -170,34 +199,8 @@ export default function ShipperTracking() {
       // Join socket room for this trip
       if (socketRef.current) {
         socketRef.current.emit('join', tid);
-      }
-
-      // Plot historical checkpoints on map (oldest first for polyline)
-      await initMap();
-
-      if (cps.length > 0) {
-        // Replay coords in chronological order to draw the polyline
-        const sorted = [...cps].reverse();
-        allCoordsRef.current = sorted
-          .map(cp => [parseFloat(cp.latitude), parseFloat(cp.longitude)])
-          .filter(c => !isNaN(c[0]) && !isNaN(c[1]));
-
-        // Plot each intermediate point without panning, then pan to latest
-        if (allCoordsRef.current.length > 1 && mapRef.current) {
-          const L = await ensureLeaflet();
-          polylineRef.current = L.polyline(allCoordsRef.current, {
-            color: '#3B82F6',
-            weight: 4,
-            opacity: 0.8,
-          }).addTo(mapRef.current);
-        }
-
-        // Marker + pan to the very latest checkpoint
-        const latest = cps[0];
-        const lat = parseFloat(latest.latitude);
-        const lng = parseFloat(latest.longitude);
-        if (!isNaN(lat) && !isNaN(lng)) {
-          await updateMap(lat, lng, latest.location, latest.speed, latest.isLive);
+        if (tripData?.id && tripData.id !== tid) {
+          socketRef.current.emit('join', tripData.id);
         }
       }
     } catch (err) {
@@ -207,7 +210,7 @@ export default function ShipperTracking() {
     } finally {
       setLoading(false);
     }
-  }, [initMap, ensureLeaflet, updateMap]);
+  }, []);
 
   // ─── Socket setup ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -218,7 +221,7 @@ export default function ShipperTracking() {
     const socket = io(socketUrl);
     socketRef.current = socket;
 
-    socket.on('trackingUpdated', async (newCheckpoint) => {
+    socket.on('trackingUpdated', (newCheckpoint) => {
       const isLive = newCheckpoint.isLive;
       const label  = isLive ? '🟢 Live GPS update' : '📍 New checkpoint';
       toast.info(`${label}: ${newCheckpoint.location}`, {
@@ -226,15 +229,8 @@ export default function ShipperTracking() {
         autoClose: 2500,
       });
 
-      // Prepend to timeline
+      // Prepend to timeline; useEffect above will update map
       setCheckpoints(prev => [newCheckpoint, ...prev]);
-
-      // Update map marker + polyline
-      const lat = parseFloat(newCheckpoint.latitude);
-      const lng = parseFloat(newCheckpoint.longitude);
-      if (!isNaN(lat) && !isNaN(lng)) {
-        await updateMap(lat, lng, newCheckpoint.location, newCheckpoint.speed, isLive);
-      }
     });
 
     if (urlTripId) {
@@ -242,7 +238,7 @@ export default function ShipperTracking() {
     }
 
     return () => socket.disconnect();
-  }, [urlTripId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [urlTripId, fetchTrackingData]);
 
   // Invalidate map size when it becomes visible (avoids grey tiles)
   useEffect(() => {
@@ -306,12 +302,12 @@ export default function ShipperTracking() {
           <form onSubmit={handleSearch} className="mx-auto mt-auto w-full max-w-[720px] rounded-[14px] bg-paper p-2 text-ink shadow-[0_24px_60px_-20px_rgb(0_0_0/0.6)]">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
               <label htmlFor="track-id" className="relative flex-1">
-                <span className="hud absolute left-12 top-2.5 text-muted">Trip ID / booking ID</span>
+                <span className="hud absolute left-12 top-2.5 text-muted">Tracking ID / Shipment ID</span>
                 <BsSearch aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 text-lg text-muted" />
                 <input
                   id="track-id"
                   required
-                  placeholder="Enter the ID from your booking"
+                  placeholder="e.g. TRK-498210, SHP-2026-9042, or Trip UUID"
                   className="h-full w-full rounded-[10px] border border-transparent bg-surface pb-2.5 pl-12 pr-4 pt-7 text-[16px] font-medium text-ink placeholder:text-muted/60 transition-colors focus:border-ink focus:outline-none"
                   value={tripIdInput}
                   onChange={e => setTripIdInput(e.target.value)}
@@ -414,8 +410,8 @@ export default function ShipperTracking() {
               {/* Map container — Leaflet renders here */}
               <div
                 ref={mapDivRef}
-                style={{ height: '440px', width: '100%' }}
-                className="z-0"
+                style={{ height: '440px', width: '100%', minHeight: '440px', position: 'relative' }}
+                className="z-0 bg-gray-50"
               />
             </div>
 

@@ -79,19 +79,42 @@ const trackingController = {
     try {
       const { tripId } = req.params;
 
-      const trip = await Trip.findByPk(tripId, {
-        include: [
-          { model: Driver, as: 'driver', attributes: ['name', 'contact_number'] },
-          { model: Vehicle, as: 'vehicle', attributes: ['registration_number', 'model_name'] }
-        ]
-      });
+      // Resolve tripId: could be UUID, tracking_id (TRK-...), or shipment_id (SHP-...)
+      let trip;
+      if (tripId.startsWith('TRK-')) {
+        trip = await Trip.findOne({
+          where: { tracking_id: tripId },
+          include: [
+            { model: Driver, as: 'driver', attributes: ['name', 'contact_number'] },
+            { model: Vehicle, as: 'vehicle', attributes: ['registration_number', 'model_name'] }
+          ]
+        });
+      } else if (tripId.startsWith('SHP-')) {
+        const { FreightBooking } = require('../models');
+        const booking = await FreightBooking.findOne({ where: { shipment_id: tripId } });
+        if (booking && booking.trip_id) {
+          trip = await Trip.findByPk(booking.trip_id, {
+            include: [
+              { model: Driver, as: 'driver', attributes: ['name', 'contact_number'] },
+              { model: Vehicle, as: 'vehicle', attributes: ['registration_number', 'model_name'] }
+            ]
+          });
+        }
+      } else {
+        trip = await Trip.findByPk(tripId, {
+          include: [
+            { model: Driver, as: 'driver', attributes: ['name', 'contact_number'] },
+            { model: Vehicle, as: 'vehicle', attributes: ['registration_number', 'model_name'] }
+          ]
+        });
+      }
 
       if (!trip) {
         return next(new AppError('Trip not found', 404));
       }
 
       const checkpoints = await Tracking.findAll({
-        where: { trip_id: tripId },
+        where: { trip_id: trip.id },
         order: [['timestamp', 'DESC']]
       });
 

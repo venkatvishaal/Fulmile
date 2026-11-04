@@ -73,6 +73,20 @@ const Trip = sequelize.define('Trip', {
     type: DataTypes.UUID,
     allowNull: true,
     references: { model: 'routes', key: 'id' }
+  },
+  tracking_id: {
+    type: DataTypes.STRING(30),
+    allowNull: true,
+    unique: true
+  },
+  estimated_fuel_liters: {
+    type: DataTypes.DECIMAL(8, 2),
+    allowNull: true
+  },
+  carrier_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: { model: 'carriers', key: 'id' }
   }
 }, {
   tableName: 'trips',

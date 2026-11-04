@@ -8,9 +8,21 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Modal from '../components/ui/Modal';
 import PayloadGauge from '../components/ui/PayloadGauge';
 import { toast } from 'react-toastify';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import api from '../services/api';
+import freightBookingService from '../services/freightBookingService';
 import { io } from 'socket.io-client';
-import { FaRoute, FaPlus, FaCheck, FaBan, FaPlay, FaArrowRight, FaGasPump, FaTachometerAlt, FaShareAlt, FaMapMarkerAlt, FaBroadcastTower, FaStop, FaCopy, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaRoute, FaPlus, FaCheck, FaBan, FaPlay, FaArrowRight, FaGasPump, FaTachometerAlt, FaShareAlt, FaMapMarkerAlt, FaBroadcastTower, FaStop, FaCopy, FaExternalLinkAlt, FaBoxOpen } from 'react-icons/fa';
+import { calculateRouteDistance, estimateFuelLiters } from '../utils/distanceCalculator';
+
+// Custom truck icon SVG data-URL
+const truckIconSvg = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <circle cx="24" cy="24" r="22" fill="#2563eb" stroke="white" stroke-width="3"/>
+  <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-size="22" fill="white">🚛</text>
+</svg>`;
+const truckIconUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(truckIconSvg)}`;
 
 export default function TripPlanner() {
   const dispatch = useDispatch();
@@ -20,6 +32,10 @@ export default function TripPlanner() {
   const [eligibleVehicles, setEligibleVehicles] = useState([]);
   const [eligibleDrivers, setEligibleDrivers] = useState([]);
   
+  // Accepted freight orders ready for dispatch
+  const [acceptedOrders, setAcceptedOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(null); // stores active trip object
   
@@ -29,8 +45,12 @@ export default function TripPlanner() {
     vehicle_id: '',
     driver_id: '',
     cargo_weight: '',
-    planned_distance: ''
+    planned_distance: '',
+    estimated_fuel_liters: '',
+    booking_id: null
   });
+  const [routeCalc, setRouteCalc] = useState(null);
+  const [calcLoading, setCalcLoading] = useState(false);
 
   const [completeForm, setCompleteForm] = useState({
     final_odometer: '',
@@ -65,6 +85,100 @@ export default function TripPlanner() {
   const [liveTrip, setLiveTrip] = useState(null);  // which trip is being streamed
   const liveSocketRef = useRef(null);
   const watchIdRef = useRef(null);
+
+  // Live Location Map Modal for Carrier
+  const [showMapModal, setShowMapModal] = useState(null);
+  const modalMapDivRef = useRef(null);
+  const modalMapRef = useRef(null);
+  const modalMarkerRef = useRef(null);
+  const modalPolylineRef = useRef(null);
+  const [modalCheckpoints, setModalCheckpoints] = useState([]);
+  const [modalLoading, setModalLoading] = useState(false);
+
+  const openLiveMapModal = useCallback(async (trip) => {
+    setShowMapModal(trip);
+    setModalLoading(true);
+    try {
+      const res = await api.get(`/tracking/${trip.id}`);
+      setModalCheckpoints(res.data.data?.checkpoints || []);
+    } catch (err) {
+      console.warn('Failed to load tracking history:', err);
+      setModalCheckpoints([]);
+    } finally {
+      setModalLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showMapModal || !modalMapDivRef.current) return;
+
+    if (modalMapRef.current) {
+      modalMapRef.current.remove();
+      modalMapRef.current = null;
+      modalMarkerRef.current = null;
+      modalPolylineRef.current = null;
+    }
+
+    if (modalMapDivRef.current._leaflet_id) {
+      modalMapDivRef.current._leaflet_id = null;
+    }
+
+    const map = L.map(modalMapDivRef.current, { zoomControl: true }).setView(
+      [20.5937, 78.9629],
+      5
+    );
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap',
+      maxZoom: 19,
+    }).addTo(map);
+
+    modalMapRef.current = map;
+
+    setTimeout(() => {
+      if (modalMapRef.current) modalMapRef.current.invalidateSize();
+    }, 150);
+
+    const validCps = modalCheckpoints
+      .map(cp => ({ ...cp, lat: parseFloat(cp.latitude), lng: parseFloat(cp.longitude) }))
+      .filter(c => !isNaN(c.lat) && !isNaN(c.lng));
+
+    if (validCps.length > 0) {
+      const sorted = [...validCps].reverse();
+      const coords = sorted.map(c => [c.lat, c.lng]);
+
+      if (coords.length > 1) {
+        modalPolylineRef.current = L.polyline(coords, {
+          color: '#3B82F6',
+          weight: 4,
+          opacity: 0.8
+        }).addTo(map);
+      }
+
+      const latest = validCps[0];
+      const icon = L.icon({
+        iconUrl: truckIconUrl,
+        iconSize: [44, 44],
+        iconAnchor: [22, 22],
+        popupAnchor: [0, -22]
+      });
+
+      modalMarkerRef.current = L.marker([latest.lat, latest.lng], { icon }).addTo(map);
+      modalMarkerRef.current
+        .bindPopup(`<strong>📍 ${latest.location}</strong><br/>${latest.lat.toFixed(4)}, ${latest.lng.toFixed(4)}`)
+        .openPopup();
+      map.flyTo([latest.lat, latest.lng], 12);
+    }
+
+    return () => {
+      if (modalMapRef.current) {
+        modalMapRef.current.remove();
+        modalMapRef.current = null;
+        modalMarkerRef.current = null;
+        modalPolylineRef.current = null;
+      }
+    };
+  }, [showMapModal, modalCheckpoints]);
 
   // ── Reverse geocode helper (city name from lat/lng) ──────────
   const reverseGeocode = useCallback(async (lat, lng) => {
@@ -185,9 +299,50 @@ export default function TripPlanner() {
 
   const selectedVehicleObj = eligibleVehicles.find(v => v.id === form.vehicle_id);
 
+  const loadAcceptedOrders = useCallback(async () => {
+    try {
+      const res = await freightBookingService.getAcceptedForDispatch();
+      setAcceptedOrders(res.data.data || []);
+    } catch (err) {
+      console.warn('Failed to load accepted freight orders:', err);
+    }
+  }, []);
+
+  const handleDispatchFreightOrder = (order) => {
+    setSelectedOrder(order);
+    setForm({
+      source: order.pickup_address || '',
+      destination: order.delivery_address || '',
+      vehicle_id: '',
+      driver_id: '',
+      cargo_weight: order.cargo_weight?.toString() || '',
+      planned_distance: order.estimated_distance_km?.toString() || '',
+      estimated_fuel_liters: order.estimated_fuel_liters?.toString() || '',
+      booking_id: order.id
+    });
+    if (order.estimated_distance_km) {
+      setRouteCalc({
+        distanceKm: parseFloat(order.estimated_distance_km),
+        fuelLiters: parseFloat(order.estimated_fuel_liters || 0)
+      });
+    }
+    setShowAddModal(true);
+  };
+
   useEffect(() => {
     dispatch(fetchTrips());
-  }, [dispatch]);
+    loadAcceptedOrders();
+
+    const socketUrl = process.env.REACT_APP_API_BASE_URL
+      ? process.env.REACT_APP_API_BASE_URL.replace('/api', '')
+      : 'http://localhost:5000';
+    const s = io(socketUrl);
+    s.on('fleet:update', () => {
+      dispatch(fetchTrips());
+      loadAcceptedOrders();
+    });
+    return () => s.disconnect();
+  }, [dispatch, loadAcceptedOrders]);
 
   const loadEligibleOptions = async () => {
     try {
@@ -209,6 +364,38 @@ export default function TripPlanner() {
     }
   }, [showAddModal, dispatch]);
 
+  
+  // Auto-calculate distance and fuel when source and destination are entered
+  useEffect(() => {
+    const src = (form.source || '').trim();
+    const dst = (form.destination || '').trim();
+    if (src.length < 3 || dst.length < 3) {
+      setRouteCalc(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setCalcLoading(true);
+      try {
+        const res = await calculateRouteDistance(src, dst);
+        if (res && res.distanceKm > 0) {
+          const vObj = eligibleVehicles.find(v => v.id === form.vehicle_id);
+          const fuel = estimateFuelLiters(res.distanceKm, vObj?.vehicle_type || 'truck', parseFloat(form.cargo_weight) || 0);
+          setRouteCalc({ ...res, fuelLiters: fuel });
+          setForm(prev => ({
+            ...prev,
+            planned_distance: res.distanceKm.toString(),
+            estimated_fuel_liters: fuel.toString()
+          }));
+        }
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        setCalcLoading(false);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [form.source, form.destination, form.vehicle_id, form.cargo_weight, eligibleVehicles]);
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -217,16 +404,21 @@ export default function TripPlanner() {
     e.preventDefault();
     const res = await dispatch(createTrip(form));
     if (createTrip.fulfilled.match(res)) {
-      toast.success('Trip created as Draft');
+      toast.success(selectedOrder ? `Dispatch created for freight order ${selectedOrder.shipment_id}` : 'Trip created as Draft');
       setShowAddModal(false);
+      setSelectedOrder(null);
       setForm({
         source: '',
         destination: '',
         vehicle_id: '',
         driver_id: '',
         cargo_weight: '',
-        planned_distance: ''
+        planned_distance: '',
+        estimated_fuel_liters: '',
+        booking_id: null
       });
+      loadAcceptedOrders();
+      dispatch(fetchTrips());
     } else {
       const errMsg = res.payload;
       if (errMsg && errMsg.message) {
@@ -283,12 +475,90 @@ export default function TripPlanner() {
             <p className="text-gray-500 text-sm mt-1">Plan, dispatch, and track active cargo routes</p>
           </div>
           <button 
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              setSelectedOrder(null);
+              setForm({
+                source: '',
+                destination: '',
+                vehicle_id: '',
+                driver_id: '',
+                cargo_weight: '',
+                planned_distance: '',
+                estimated_fuel_liters: '',
+                booking_id: null
+              });
+              setRouteCalc(null);
+              setShowAddModal(true);
+            }}
             className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 transition font-bold shadow-sm"
           >
             <FaPlus /> Create Dispatch
           </button>
         </div>
+
+        {/* Accepted Freight Orders Ready for Dispatch */}
+        {acceptedOrders.length > 0 && (
+          <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+                  <span className="flex h-3 w-3 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600"></span>
+                  </span>
+                  Accepted Freight Orders Ready for Dispatch ({acceptedOrders.length})
+                </h2>
+                <p className="text-xs text-gray-600 mt-1">
+                  Shippers have accepted price quotes for these shipments. Click below to assign a vehicle & driver to dispatch them.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {acceptedOrders.map((order) => (
+                <div key={order.id} className="bg-white rounded-xl border border-blue-100 p-4 shadow-sm hover:shadow transition flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="font-mono font-bold text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-md">
+                        {order.shipment_id}
+                      </span>
+                      <span className="font-mono font-extrabold text-sm text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
+                        ₹{parseFloat(order.price_quote || 0).toLocaleString()}
+                      </span>
+                    </div>
+
+                    <div className="text-sm font-extrabold text-gray-800 flex items-center gap-2 mt-2">
+                      <span className="truncate">{order.pickup_address}</span>
+                      <FaArrowRight className="text-xs text-gray-400 shrink-0" />
+                      <span className="truncate">{order.delivery_address}</span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 mt-2.5 font-mono">
+                      <span>⚖️ {parseFloat(order.cargo_weight).toLocaleString()} kg</span>
+                      {order.estimated_distance_km && (
+                        <span>📍 {order.estimated_distance_km} km</span>
+                      )}
+                      {order.estimated_fuel_liters && (
+                        <span>⛽ {order.estimated_fuel_liters} L</span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-1.5 font-medium">Shipper: {order.shipper?.name || 'Shipper'} {order.shipper?.company_name ? `(${order.shipper.company_name})` : ''}</p>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => handleDispatchFreightOrder(order)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1.5 shadow-sm"
+                    >
+                      <FaPlay className="text-[10px]" /> Dispatch This Order
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {loading && trips.length === 0 ? (
           <LoadingSpinner />
@@ -347,8 +617,104 @@ export default function TripPlanner() {
                     </div>
                   </div>
 
+                  {/* Shared Cargo Accepted Section */}
+                  {t.freight_bookings && t.freight_bookings.length > 0 && (
+                    <div className="mt-3.5 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-3.5">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-extrabold text-purple-950 flex items-center gap-1.5">
+                          <span className="flex h-2 w-2 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-600"></span>
+                          </span>
+                          📦 Shared Cargo Accepted ({t.freight_bookings.length})
+                        </span>
+                        <span className="text-[10px] font-mono font-bold uppercase text-purple-700 bg-purple-100 px-2 py-0.5 rounded border border-purple-200">
+                          Active Route Load
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        {t.freight_bookings.map((fb) => (
+                          <div 
+                            key={fb.id} 
+                            className="flex flex-wrap items-center justify-between gap-2 text-xs bg-white rounded-lg p-3 border border-purple-100 shadow-sm"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-xs bg-purple-100 text-purple-900 px-2 py-0.5 rounded">
+                                {fb.shipment_id}
+                              </span>
+                              <span className="font-semibold text-gray-800">
+                                {fb.pickup_address} <FaArrowRight className="inline text-[10px] text-gray-400 mx-1" /> <strong className="text-purple-900 font-extrabold">{fb.delivery_address}</strong>
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2.5 font-mono text-xs">
+                              <span className="text-gray-700 bg-gray-100 px-2 py-0.5 rounded font-semibold">
+                                ⚖️ {parseFloat(fb.cargo_weight).toLocaleString()} kg
+                              </span>
+                              <span className="bg-emerald-100 text-emerald-800 font-extrabold px-2.5 py-1 rounded-md border border-emerald-300 flex items-center gap-1 shadow-xs">
+                                🏁 Shared Cargo Accepted: Destination {fb.delivery_address}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Completed Trip Financial Settlement Summary */}
+                  {t.status === 'Completed' && (() => {
+                    const bookings = t.freight_bookings || [];
+                    let primaryRev = 0;
+                    let sharedRev = 0;
+                    bookings.forEach(b => {
+                      const amt = parseFloat(b.price_quote) || 0;
+                      if (b.is_shared) sharedRev += amt;
+                      else primaryRev += amt;
+                    });
+                    if (primaryRev === 0 && parseFloat(t.price_quote) > 0) {
+                      primaryRev = parseFloat(t.price_quote);
+                    }
+                    const totalRev = primaryRev + sharedRev;
+                    const fuelLit = parseFloat(t.fuel_consumed_liters) || 0;
+                    const fuelCost = fuelLit * 100;
+                    const netProfit = totalRev - fuelCost;
+                    const margin = totalRev > 0 ? ((netProfit / totalRev) * 100).toFixed(1) : 0;
+
+                    return (
+                      <div className="mt-3.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3.5">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
+                            💰 Completed Trip Financial Settlement
+                          </span>
+                          <span className="text-[10px] font-mono font-bold uppercase text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
+                            Reconciled in Reports & Analytics
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
+                          <div className="bg-white p-2 rounded-lg border border-emerald-100">
+                            <span className="text-[10px] text-gray-400 block font-sans font-bold uppercase">Primary Freight</span>
+                            <span className="font-bold text-gray-800">₹{primaryRev.toLocaleString()}</span>
+                          </div>
+                          <div className="bg-white p-2 rounded-lg border border-emerald-100">
+                            <span className="text-[10px] text-emerald-600 block font-sans font-bold uppercase">Shared Cargo Profit</span>
+                            <span className="font-bold text-emerald-700">+{sharedRev > 0 ? `₹${sharedRev.toLocaleString()}` : '₹0'}</span>
+                          </div>
+                          <div className="bg-white p-2 rounded-lg border border-emerald-100">
+                            <span className="text-[10px] text-red-500 block font-sans font-bold uppercase">Fuel Expense</span>
+                            <span className="font-bold text-red-600">-₹{fuelCost.toLocaleString()} ({fuelLit}L)</span>
+                          </div>
+                          <div className="bg-white p-2 rounded-lg border border-emerald-200 bg-gradient-to-r from-emerald-50 to-white">
+                            <span className="text-[10px] text-emerald-800 block font-sans font-bold uppercase">Net Profit Margin</span>
+                            <span className="font-black text-emerald-800">+{netProfit.toLocaleString()} ({margin}%)</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Actions Row */}
-                  <div className="mt-4 pt-4 border-t border-gray-100 flex gap-3 justify-end">
+                  <div className="mt-4 pt-4 border-t border-gray-100 flex gap-3 justify-end flex-wrap">
                     {t.status === 'Draft' && (
                       <>
                         <button 
@@ -368,6 +734,15 @@ export default function TripPlanner() {
 
                     {t.status === 'Dispatched' && (
                       <>
+                        {/* Live Location Map modal for Carrier */}
+                        <button
+                          onClick={() => openLiveMapModal(t)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1.5 shadow-sm"
+                          title="View Live Location Map directly"
+                        >
+                          <FaMapMarkerAlt /> Live Map
+                        </button>
+
                         {/* Manual GPS checkpoint */}
                         <button
                           onClick={() => openTrackingModal(t)}
@@ -412,7 +787,8 @@ export default function TripPlanner() {
                         {/* Open customer tracking page */}
                         <button
                           onClick={() => {
-                            const url = `${window.location.origin}/track/${t.id}`;
+                            const code = t.tracking_id || t.id;
+                            const url = `${window.location.origin}/track/${code}`;
                             navigator.clipboard.writeText(url).then(() =>
                               toast.success('🔗 Tracking link copied to clipboard!')
                             );
@@ -450,8 +826,72 @@ export default function TripPlanner() {
         )}
 
         {/* Create Modal */}
-        <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Create Dispatch Trip">
+        <Modal 
+          isOpen={showAddModal} 
+          onClose={() => {
+            setShowAddModal(false);
+            setSelectedOrder(null);
+          }} 
+          title={selectedOrder ? `Dispatch Freight Order · ${selectedOrder.shipment_id}` : "Create Dispatch Trip"}
+        >
           <form onSubmit={handleCreate} className="space-y-4">
+            {selectedOrder ? (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 text-xs text-blue-900 flex justify-between items-center">
+                <div>
+                  <div className="font-extrabold text-blue-950 flex items-center gap-1.5">
+                    <FaBoxOpen className="text-blue-600" />
+                    <span>Fulfilling Order: {selectedOrder.shipment_id}</span>
+                    <span className="bg-emerald-100 text-emerald-800 font-mono px-2 py-0.5 rounded font-bold">
+                      ₹{parseFloat(selectedOrder.price_quote || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-blue-700 mt-1">
+                    Shipper: {selectedOrder.shipper?.name} • Weight: {selectedOrder.cargo_weight} kg
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOrder(null);
+                    setForm(prev => ({
+                      ...prev,
+                      booking_id: null,
+                      source: '',
+                      destination: '',
+                      cargo_weight: '',
+                      planned_distance: '',
+                      estimated_fuel_liters: ''
+                    }));
+                    setRouteCalc(null);
+                  }}
+                  className="text-blue-600 hover:text-blue-800 underline font-semibold text-[11px]"
+                >
+                  Clear Order
+                </button>
+              </div>
+            ) : acceptedOrders.length > 0 && (
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs">
+                <label className="block text-xs font-bold text-gray-700 mb-1 flex items-center gap-1.5">
+                  <FaBoxOpen className="text-blue-600" /> Fulfill an Accepted Freight Order (Optional):
+                </label>
+                <select
+                  onChange={(e) => {
+                    const ord = acceptedOrders.find(o => o.id === e.target.value);
+                    if (ord) handleDispatchFreightOrder(ord);
+                  }}
+                  className="w-full border border-gray-300 rounded-lg p-2 text-xs outline-none focus:ring-blue-500 bg-white"
+                  defaultValue=""
+                >
+                  <option value="">-- Choose an accepted shipment to auto-fill --</option>
+                  {acceptedOrders.map(o => (
+                    <option key={o.id} value={o.id}>
+                      {o.shipment_id} ({o.pickup_address} ➔ {o.delivery_address}, {o.cargo_weight}kg · ₹{o.price_quote})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Source Depot</label>
@@ -476,6 +916,22 @@ export default function TripPlanner() {
                 />
               </div>
             </div>
+
+            {calcLoading && (
+              <div className="bg-blue-50 border border-blue-200 text-blue-700 text-xs p-2.5 rounded-lg animate-pulse flex items-center gap-2">
+                ⚡ Calculating real road distance and estimated fuel...
+              </div>
+            )}
+            {routeCalc && !calcLoading && (
+              <div className="bg-green-50 border border-green-300 text-green-900 text-xs p-3 rounded-xl flex items-center justify-between">
+                <div>
+                  <span className="font-bold">📍 Road Distance:</span> {routeCalc.distanceKm} km
+                  <span className="mx-2">|</span>
+                  <span className="font-bold">⛽ Est. Fuel:</span> {routeCalc.fuelLiters} L
+                </div>
+                <span className="text-[10px] text-green-700 font-mono">Auto-Calculated</span>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Select Driver</label>
@@ -879,6 +1335,94 @@ export default function TripPlanner() {
               </button>
             </div>
           </form>
+        </Modal>
+
+        {/* Live Location Map Modal for Carrier */}
+        <Modal 
+          isOpen={!!showMapModal} 
+          onClose={() => {
+            setShowMapModal(null);
+            setModalCheckpoints([]);
+          }} 
+          title={`🗺 Live Location Map · ${showMapModal?.source} ➔ ${showMapModal?.destination}`}
+        >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 text-xs text-blue-900">
+              <div>
+                <span className="font-bold">Truck:</span> {showMapModal?.vehicle?.registration_number} ({showMapModal?.vehicle?.model_name})
+                <span className="mx-2">•</span>
+                <span className="font-bold">Driver:</span> {showMapModal?.driver?.name}
+              </div>
+              {modalCheckpoints.length > 0 && (
+                <span className="font-mono font-bold bg-blue-600 text-white px-2 py-0.5 rounded">
+                  📍 {modalCheckpoints[0].location}
+                </span>
+              )}
+            </div>
+
+            {/* Shared cargo onboard section */}
+            {showMapModal?.freight_bookings && showMapModal.freight_bookings.length > 0 && (
+              <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 text-xs">
+                <span className="font-extrabold text-purple-900 block mb-1.5 flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-purple-600"></span>
+                  Shared Cargo Accepted on Route:
+                </span>
+                <div className="space-y-1.5">
+                  {showMapModal.freight_bookings.map(fb => (
+                    <div key={fb.id} className="flex justify-between items-center text-[11px] bg-white rounded-md px-2.5 py-1.5 border border-purple-100">
+                      <span><strong>{fb.shipment_id}</strong>: {fb.pickup_address} ➔ <strong className="text-purple-900">{fb.delivery_address}</strong> ({fb.cargo_weight}kg)</span>
+                      <span className="bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded border border-emerald-300">
+                        🏁 Destination: {fb.delivery_address}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {modalLoading ? (
+              <div className="h-[400px] flex items-center justify-center bg-gray-50 rounded-2xl border border-gray-200">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <div
+                ref={modalMapDivRef}
+                style={{ height: '400px', width: '100%', minHeight: '400px', position: 'relative' }}
+                className="rounded-2xl overflow-hidden border border-gray-200 z-0 bg-gray-50"
+              />
+            )}
+
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-xs text-gray-500 font-mono">
+                {modalCheckpoints.length} GPS update{modalCheckpoints.length !== 1 ? 's' : ''} recorded
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const code = showMapModal?.tracking_id || showMapModal?.id;
+                    const url = `${window.location.origin}/track/${code}`;
+                    navigator.clipboard.writeText(url).then(() =>
+                      toast.success('Tracking link copied!')
+                    );
+                  }}
+                  className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-lg transition inline-flex items-center gap-1.5"
+                >
+                  <FaCopy /> Copy Link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const code = showMapModal?.tracking_id || showMapModal?.id;
+                    window.open(`${window.location.origin}/track/${code}`, '_blank');
+                  }}
+                  className="bg-gray-800 hover:bg-gray-900 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition inline-flex items-center gap-1.5 shadow-sm"
+                >
+                  <FaExternalLinkAlt /> Full Tracker
+                </button>
+              </div>
+            </div>
+          </div>
         </Modal>
       </div>
     </div>
