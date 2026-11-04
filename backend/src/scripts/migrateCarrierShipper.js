@@ -80,7 +80,14 @@ async function migrate() {
     `);
     console.log('freight_bookings table verified.');
 
-    // 6. Ensure 'shipper' role exists
+    // 6. Ensure 'shipper' role exists and update constraint on roles
+    await sequelize.query(`
+      ALTER TABLE roles DROP CONSTRAINT IF EXISTS chk_roles_name;
+      ALTER TABLE roles ADD CONSTRAINT chk_roles_name CHECK (
+        name IN ('fleet_manager', 'driver', 'safety_officer', 'financial_analyst', 'shipper', 'admin')
+      );
+    `);
+
     const [shipperRole] = await Role.findOrCreate({
       where: { name: 'shipper' },
       defaults: {

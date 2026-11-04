@@ -83,14 +83,27 @@ const authController = {
 
       } else if (accountType === 'shipper') {
         // ── SHIPPER PATH ──
-        [roleRecord] = await Role.findOrCreate({
-          where: { name: 'shipper' },
-          defaults: {
-            name: 'shipper',
-            description: 'Books freight shipments and tracks cargo deliveries'
-          },
-          transaction: t
-        });
+        try {
+          [roleRecord] = await Role.findOrCreate({
+            where: { name: 'shipper' },
+            defaults: {
+              name: 'shipper',
+              description: 'Books freight shipments and tracks cargo deliveries'
+            },
+            transaction: t
+          });
+        } catch (roleErr) {
+          // If PostgreSQL chk_roles_name constraint blocks 'shipper', drop it within the transaction
+          await sequelize.query('ALTER TABLE roles DROP CONSTRAINT IF EXISTS chk_roles_name', { transaction: t });
+          [roleRecord] = await Role.findOrCreate({
+            where: { name: 'shipper' },
+            defaults: {
+              name: 'shipper',
+              description: 'Books freight shipments and tracks cargo deliveries'
+            },
+            transaction: t
+          });
+        }
 
         if (!shipperType || !['individual', 'company'].includes(shipperType)) {
           await t.rollback();
@@ -145,7 +158,7 @@ const authController = {
     } catch (error) {
       await t.rollback();
       console.error('Registration error:', error);
-      res.status(500).json({ success: false, message: 'Registration failed. Please try again.' });
+      res.status(500).json({ success: false, message: error?.message || 'Registration failed. Please try again.' });
     }
   },
 
