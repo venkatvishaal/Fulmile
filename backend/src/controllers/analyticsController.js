@@ -67,23 +67,29 @@ const analyticsController = {
       const utilization = activeFleet > 0 ? Math.round(((vehicleStats['On Trip']) / activeFleet) * 100) : 0;
 
       // Fuel efficiency (top 5 vehicles by distance/fuel)
-      const fuelEfficiency = await Trip.findAll({
-        attributes: [
-          'vehicle_id',
-          [sequelize.fn('SUM', sequelize.col('planned_distance')), 'total_distance'],
-          [sequelize.fn('SUM', sequelize.col('fuel_consumed_liters')), 'total_fuel']
-        ],
-        where: {
-          status: 'Completed',
-          fuel_consumed_liters: { [Op.gt]: 0 },
-          ...carrierFilter
-        },
-        group: ['Trip.vehicle_id', 'vehicle.id', 'vehicle.registration_number', 'vehicle.model_name'],
-        include: [{ model: Vehicle, as: 'vehicle', attributes: ['registration_number', 'model_name'] }],
-        order: [[sequelize.literal('SUM("planned_distance") / NULLIF(SUM("fuel_consumed_liters"), 0)'), 'DESC']],
-        limit: 10,
-        raw: false
-      });
+      let fuelEfficiency = [];
+      try {
+        fuelEfficiency = await Trip.findAll({
+          attributes: [
+            'vehicle_id',
+            [sequelize.fn('SUM', sequelize.col('Trip.planned_distance')), 'total_distance'],
+            [sequelize.fn('SUM', sequelize.col('Trip.fuel_consumed_liters')), 'total_fuel']
+          ],
+          where: {
+            status: 'Completed',
+            fuel_consumed_liters: { [Op.gt]: 0 },
+            ...(req.user?.role !== 'admin' || req.user?.carrierId ? { '$Trip.carrier_id$': carrierId } : {})
+          },
+          group: ['Trip.vehicle_id', 'vehicle.id', 'vehicle.registration_number', 'vehicle.model_name'],
+          include: [{ model: Vehicle, as: 'vehicle', attributes: ['registration_number', 'model_name'] }],
+          order: [[sequelize.literal('SUM("Trip"."planned_distance") / NULLIF(SUM("Trip"."fuel_consumed_liters"), 0)'), 'DESC']],
+          limit: 10,
+          raw: false
+        });
+      } catch (feErr) {
+        console.warn('Fuel efficiency query warning:', feErr.message || feErr);
+        fuelEfficiency = [];
+      }
 
       // Operational costs per vehicle (scoped to carrier's vehicles)
       let opCosts = [];
@@ -101,26 +107,37 @@ const analyticsController = {
       }
 
       // Open maintenance count
-      const openMaintenance = await MaintenanceLog.count({
-        include: [{
-          model: Vehicle,
-          as: 'vehicle',
-          where: carrierFilter,
-          attributes: []
-        }],
-        where: { status: 'open' }
-      });
+      let openMaintenance = 0;
+      try {
+        openMaintenance = await MaintenanceLog.count({
+          include: [{
+            model: Vehicle,
+            as: 'vehicle',
+            where: carrierFilter,
+            attributes: []
+          }],
+          where: { status: 'open' }
+        });
+      } catch (omErr) {
+        openMaintenance = 0;
+      }
 
       // Shared Cargo Analytics & Pure Profit Calculation
       // (100% Margin revenue: incremental payload on existing running corridors with 0 additional base fuel/driver cost)
-      const sharedBookings = await FreightBooking.findAll({
-        where: {
-          carrier_id: carrierId,
-          price_quote: { [Op.gt]: 0 },
-          status: { [Op.in]: ['Accepted', 'In Transit', 'Delivered'] }
-        },
-        include: [{ model: Trip, as: 'trip', attributes: ['id', 'vehicle_id', 'status'] }]
-      });
+      let sharedBookings = [];
+      try {
+        sharedBookings = await FreightBooking.findAll({
+          where: {
+            carrier_id: carrierId,
+            price_quote: { [Op.gt]: 0 },
+            status: { [Op.in]: ['Accepted', 'In Transit', 'Delivered'] }
+          },
+          include: [{ model: Trip, as: 'trip', attributes: ['id', 'vehicle_id', 'status'] }]
+        });
+      } catch (sbErr) {
+        console.warn('Shared bookings query warning:', sbErr);
+        sharedBookings = [];
+      }
 
       let totalSharedCargoProfit = 0;
       const vehicleSharedProfitMap = {};
@@ -140,23 +157,29 @@ const analyticsController = {
       }
 
       // ── COMPLETED TRIPS FINANCIAL SETTLEMENT & RECONCILIATION ──
-      const completedTrips = await Trip.findAll({
-        where: {
-          ...carrierFilter,
-          status: 'Completed'
-        },
-        include: [
-          { model: Vehicle, as: 'vehicle', attributes: ['id', 'registration_number', 'model_name'] },
-          { model: Driver, as: 'driver', attributes: ['id', 'name'] },
-          { model: FuelLog, as: 'fuel_logs', attributes: ['id', 'liters', 'cost', 'date'] },
-          {
-            model: FreightBooking,
-            as: 'freight_bookings',
-            attributes: ['id', 'shipment_id', 'is_shared', 'price_quote', 'cargo_weight', 'status', 'pickup_address', 'delivery_address']
-          }
-        ],
-        order: [['completed_at', 'DESC']]
-      });
+      let completedTrips = [];
+      try {
+        completedTrips = await Trip.findAll({
+          where: {
+            ...(req.user?.role !== 'admin' || req.user?.carrierId ? { '$Trip.carrier_id$': carrierId } : {}),
+            status: 'Completed'
+          },
+          include: [
+            { model: Vehicle, as: 'vehicle', attributes: ['id', 'registration_number', 'model_name'] },
+            { model: Driver, as: 'driver', attributes: ['id', 'name'] },
+            { model: FuelLog, as: 'fuel_logs', attributes: ['id', 'liters', 'cost', 'date'] },
+            {
+              model: FreightBooking,
+              as: 'freight_bookings',
+              attributes: ['id', 'shipment_id', 'is_shared', 'price_quote', 'cargo_weight', 'status', 'pickup_address', 'delivery_address']
+            }
+          ],
+          order: [['completed_at', 'DESC']]
+        });
+      } catch (ctErr) {
+        console.warn('Completed trips query warning:', ctErr.message || ctErr);
+        completedTrips = [];
+      }
 
       let totalGrossRevenue = 0;
       let totalFreightRevenue = 0;
@@ -266,15 +289,17 @@ const analyticsController = {
             overallMarginPct
           },
           completedTripsFinancials,
-          fuelEfficiency: fuelEfficiency.map(fe => ({
-            vehicle_id: fe.vehicle_id,
-            vehicle: fe.vehicle,
-            total_distance: parseFloat(fe.getDataValue('total_distance')),
-            total_fuel: parseFloat(fe.getDataValue('total_fuel')),
-            efficiency: parseFloat(fe.getDataValue('total_fuel')) > 0
-              ? (parseFloat(fe.getDataValue('total_distance')) / parseFloat(fe.getDataValue('total_fuel'))).toFixed(2)
-              : 0
-          })),
+          fuelEfficiency: fuelEfficiency.map(fe => {
+            const dist = parseFloat(fe.getDataValue ? fe.getDataValue('total_distance') : fe.total_distance) || 0;
+            const fuel = parseFloat(fe.getDataValue ? fe.getDataValue('total_fuel') : fe.total_fuel) || 0;
+            return {
+              vehicle_id: fe.vehicle_id,
+              vehicle: fe.vehicle,
+              total_distance: dist,
+              total_fuel: fuel,
+              efficiency: fuel > 0 ? (dist / fuel).toFixed(2) : 0
+            };
+          }),
           operationalCosts: enrichedOpCosts
         }
       });
